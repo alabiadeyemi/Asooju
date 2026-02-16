@@ -1,35 +1,82 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ShieldCheck, FileText } from "lucide-react";
+import { motion } from "framer-motion";
 
-const Terms = () => (
-  <div className="min-h-screen bg-background">
-    <Navbar />
-    <div className="pt-32 pb-20 px-4">
-      <div className="container mx-auto max-w-2xl prose prose-invert prose-sm">
-        <h1 className="text-4xl font-bold text-foreground mb-8">Terms of Service</h1>
-        <p className="text-muted-foreground mb-6">Last updated: February 10, 2026</p>
+export default function Terms() {
+  return (
+    <div className="min-h-screen bg-[#020202] text-white relative overflow-hidden selection:bg-primary/30 font-sans antialiased">
+      {/* Background Ambience */}
+      <div className="fixed inset-0 bg-noise opacity-[0.03] pointer-events-none" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-primary/5 blur-[150px] pointer-events-none" />
 
-        <h2 className="text-xl font-semibold text-foreground mt-8 mb-3">1. Acceptance of Terms</h2>
-        <p className="text-muted-foreground mb-4">By accessing or using BuildShip, you agree to be bound by these Terms of Service. If you do not agree, do not use the service.</p>
+      <Navbar />
 
-        <h2 className="text-xl font-semibold text-foreground mt-8 mb-3">2. Service Description</h2>
-        <p className="text-muted-foreground mb-4">BuildShip provides AI-powered code generation tools. We generate code based on your prompts using third-party AI providers. Generated code is provided "as is" without warranty.</p>
+      <main className="container mx-auto px-4 pt-48 pb-32 relative z-10 max-w-3xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-16 text-center md:text-left"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1.5 text-[11px] font-black uppercase tracking-widest text-primary mb-8 backdrop-blur-xl">
+            <FileText className="w-3.5 h-3.5" />
+            Legal Framework
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase mb-6 leading-none">
+            Terms of <span className="text-primary italic">Service</span>
+          </h1>
+          <p className="text-lg text-muted-foreground/60 font-medium">Last updated: February 10, 2026</p>
+        </motion.div>
 
-        <h2 className="text-xl font-semibold text-foreground mt-8 mb-3">3. Code Ownership</h2>
-        <p className="text-muted-foreground mb-4">You own all code generated through BuildShip. We claim no intellectual property rights over your generated output.</p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-12 text-muted-foreground/80 leading-relaxed font-medium"
+        >
+          <section>
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight mb-4 flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              1. Acceptance of Terms
+            </h2>
+            <p>By accessing or using ShipKernel, you agree to be bound by these Terms of Service. If you do not agree, do not use the service.</p>
+          </section>
 
-        <h2 className="text-xl font-semibold text-foreground mt-8 mb-3">4. BYOK (Bring Your Own Key)</h2>
-        <p className="text-muted-foreground mb-4">When using BYOK, you are responsible for your own API costs with third-party providers. BuildShip stores your keys encrypted and uses them solely to make requests on your behalf.</p>
+          <section>
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight mb-4 flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              2. Service Description
+            </h2>
+            <p>ShipKernel provides AI-powered code generation tools. We generate code based on your prompts using third-party AI providers. Generated code is provided "as is" without warranty.</p>
+          </section>
 
-        <h2 className="text-xl font-semibold text-foreground mt-8 mb-3">5. Acceptable Use</h2>
-        <p className="text-muted-foreground mb-4">You may not use BuildShip to generate malicious code, violate any laws, or infringe on intellectual property rights. We reserve the right to suspend accounts that violate these terms.</p>
+          <section>
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight mb-4 flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              3. Code Ownership
+            </h2>
+            <p>You own all code generated through ShipKernel. We claim no intellectual property rights over your generated output. You are free to commit, ship, and monetize the results.</p>
+          </section>
 
-        <h2 className="text-xl font-semibold text-foreground mt-8 mb-3">6. Limitation of Liability</h2>
-        <p className="text-muted-foreground mb-4">BuildShip is not liable for any damages arising from the use of generated code. You are responsible for reviewing, testing, and deploying code in your own environments.</p>
-      </div>
+          <section>
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight mb-4 flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              4. BYOK (Bring Your Own Key)
+            </h2>
+            <p>When using BYOK, you are responsible for your own API costs with third-party providers. ShipKernel stores your keys encrypted and uses them solely to make requests on your behalf.</p>
+          </section>
+
+          <section className="p-8 rounded-[32px] border border-white/5 bg-white/[0.01] flex items-start gap-6">
+            <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
+            <div>
+              <h3 className="text-lg font-bold text-white uppercase tracking-tight mb-2">Secure Infrastructure</h3>
+              <p className="text-sm">We take security seriously. All platform interactions are encrypted, and we follow industry-standard practices to protect your data and keys.</p>
+            </div>
+          </section>
+        </motion.div>
+      </main>
+
+      <Footer />
     </div>
-    <Footer />
-  </div>
-);
-
-export default Terms;
+  );
+}

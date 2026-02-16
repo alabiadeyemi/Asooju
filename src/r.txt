@@ -1,0 +1,229 @@
+ [Vue分析] 已设置全局结果监听器
+ [Vue分析-主世界] 脚本已加载
+ Email addresses stored:  Array(39)
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+Error handling response: TypeError: Cannot read properties of undefined (reading 'setBadgeText')
+    at updateBadgeCount (<URL>)
+    at <URL>
+ Content script 消息发送成功: Object Object
+ Email addresses stored:  Array(39)
+ 检测到URL变化，调用content_script https://shipkernel.vercel.app/auth/login
+ Email addresses stored:  Array(39)
+ Content script 消息发送成功: Object Object
+ 检测到URL变化，调用content_script https://shipkernel.vercel.app/app
+ Email addresses stored:  Array(39)
+ Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.bundle.js:1 检测到URL变化，调用content_script https://shipkernel.vercel.app/app/new
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.bundle.js:1 检测到URL变化，调用content_script https://shipkernel.vercel.app/app/projects/new-project
+content.js:40 Email addresses stored:  Array(39)
+(index):64 cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+(anonymous) @ (index):64
+content.bundle.js:1 Content script 消息发送成功: Object Object
+content.bundle.js:1 Content script 消息发送成功: Object Object
+content.bundle.js:1 Content script 消息发送成功: Object Object
+content.js:40 Email addresses stored:  Array(39)
+preview-sandbox.html:132 [Sandbox] Universal Icon System Online
+content.bundle.js:1 Content script 消息发送成功: Object Object
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+preview-sandbox.html:110 Runtime Error: ReferenceError: ChartPlaceholderCard is not defined
+    at eval (eval at renderApp (preview-sandbox.html:195:27), <anonymous>:363:31)
+    at eval (eval at renderApp (preview-sandbox.html:195:27), <anonymous>:365:11)
+    at renderApp (preview-sandbox.html:224:27)
+    at preview-sandbox.html:182:9
+console.error @ preview-sandbox.html:110
+index-CnZe6r_Q.js:1748 [Sandbox Error]: ChartPlaceholderCard is not defined
+Ct @ index-CnZe6r_Q.js:1748
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+preview-sandbox.html:110 Runtime Error: ReferenceError: ActivityCard is not defined
+    at eval (eval at renderApp (preview-sandbox.html:195:27), <anonymous>:363:23)
+    at eval (eval at renderApp (preview-sandbox.html:195:27), <anonymous>:365:11)
+    at renderApp (preview-sandbox.html:224:27)
+    at preview-sandbox.html:182:9
+console.error @ preview-sandbox.html:110
+index-CnZe6r_Q.js:1748 [Sandbox Error]: ActivityCard is not defined
+Ct @ index-CnZe6r_Q.js:1748
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)
+index-CnZe6r_Q.js:1748 Transpilation error: SyntaxError: /generated.tsx: Unexpected token, expected "," (71:45)
+
+  69 |     {
+  70 |       id: 3,
+> 71 |       title: 'Security Patch Applied',n      description: 'Critical vulnerability patched across all production servers.',
+     |                                              ^
+  72 |       time: '3 days',
+  73 |       icon: 'ShieldCheck',
+  74 |       color: 'var(--neon-green, #00FFBF)'
+    at c (index-CnZe6r_Q.js:943:21390)
+    at n.raise (index-CnZe6r_Q.js:945:34433)
+    at n.unexpected (index-CnZe6r_Q.js:945:34853)
+    at n.expect (index-CnZe6r_Q.js:945:39887)
+    at n.parseObjectLike (index-CnZe6r_Q.js:946:794)
+    at n.parseExprAtom (index-CnZe6r_Q.js:945:144770)
+    at s.parseExprAtom (index-CnZe6r_Q.js:945:5594)
+    at n.parseExprSubscripts (index-CnZe6r_Q.js:945:139571)
+    at n.parseUpdate (index-CnZe6r_Q.js:945:139191)
+    at n.parseMaybeUnary (index-CnZe6r_Q.js:945:138803)
+    at s.parseMaybeUnary (index-CnZe6r_Q.js:945:109661)
+    at n.parseMaybeUnaryOrPrivate (index-CnZe6r_Q.js:945:135589)
+    at n.parseExprOps (index-CnZe6r_Q.js:945:135699)
+    at n.parseMaybeConditional (index-CnZe6r_Q.js:945:135169)
+    at n.parseMaybeAssign (index-CnZe6r_Q.js:945:134078)
+    at s.parseMaybeAssign (index-CnZe6r_Q.js:945:108409)
+    at index-CnZe6r_Q.js:945:133656
+    at n.allowInAnd (index-CnZe6r_Q.js:946:12730)
+    at n.parseMaybeAssignAllowIn (index-CnZe6r_Q.js:945:133625)
+    at n.parseMaybeAssignAllowInOrVoidPattern (index-CnZe6r_Q.js:946:14351)
+    at n.parseExprListItem (index-CnZe6r_Q.js:946:8047)
+    at n.parseExprList (index-CnZe6r_Q.js:946:7549)
+    at n.parseArrayLike (index-CnZe6r_Q.js:946:5432)
+    at s.parseArrayLike (index-CnZe6r_Q.js:945:94604)
+    at n.parseExprAtom (index-CnZe6r_Q.js:945:144728)
+    at s.parseExprAtom (index-CnZe6r_Q.js:945:5594)
+    at n.parseExprSubscripts (index-CnZe6r_Q.js:945:139571)
+    at n.parseUpdate (index-CnZe6r_Q.js:945:139191)
+    at n.parseMaybeUnary (index-CnZe6r_Q.js:945:138803)
+    at s.parseMaybeUnary (index-CnZe6r_Q.js:945:109661)
+    at n.parseMaybeUnaryOrPrivate (index-CnZe6r_Q.js:945:135589)
+    at n.parseExprOps (index-CnZe6r_Q.js:945:135699)
+    at n.parseMaybeConditional (index-CnZe6r_Q.js:945:135169)
+    at n.parseMaybeAssign (index-CnZe6r_Q.js:945:134078)
+    at s.parseMaybeAssign (index-CnZe6r_Q.js:945:108409)
+    at index-CnZe6r_Q.js:945:133656
+    at n.allowInAnd (index-CnZe6r_Q.js:946:12688)
+    at n.parseMaybeAssignAllowIn (index-CnZe6r_Q.js:945:133625)
+    at n.parseVar (index-CnZe6r_Q.js:946:33304)
+    at n.parseVarStatement (index-CnZe6r_Q.js:946:29497)
+    at s.parseVarStatement (index-CnZe6r_Q.js:945:99590)
+    at n.parseStatementContent (index-CnZe6r_Q.js:946:21449)
+    at s.parseStatementContent (index-CnZe6r_Q.js:945:101444)
+    at n.parseStatementLike (index-CnZe6r_Q.js:946:19602)
+    at n.parseStatementListItem (index-CnZe6r_Q.js:946:19041)
+    at n.parseBlockOrModuleBlockBody (index-CnZe6r_Q.js:946:31720)
+    at n.parseBlockBody (index-CnZe6r_Q.js:946:31530)
+    at n.parseBlock (index-CnZe6r_Q.js:946:31227)
+    at n.parseFunctionBody (index-CnZe6r_Q.js:946:6615)
+    at n.parseArrowExpression (index-CnZe6r_Q.js:946:5921)
+JPt @ index-CnZe6r_Q.js:1748
+index-CnZe6r_Q.js:1748 [Transpiler] Failed: SyntaxError: /generated.tsx: Unexpected token, expected "," (71:45)
+
+  69 |     {
+  70 |       id: 3,
+> 71 |       title: 'Security Patch Applied',n      description: 'Critical vulnerability patched across all production servers.',
+     |                                              ^
+  72 |       time: '3 days',
+  73 |       icon: 'ShieldCheck',
+  74 |       color: 'var(--neon-green, #00FFBF)'
+(anonymous) @ index-CnZe6r_Q.js:1748
+content.js:40 Email addresses stored:  Array(39)
+content.js:40 Email addresses stored:  Array(39)

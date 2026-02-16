@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Use core Lucide (data only, no React dependency) to prevent crashing -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+
+    #root {
+      min-height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    const init = () => {
+      window.React = React;
+      window.ReactDOM = ReactDOM;
+      window.framerMotion = window.Motion; // Expose Framer Motion correctly
+      window.process = { env: { NODE_ENV: 'development' } };
+
+      // Define the Universal Icon Component
+      // AI will use <Icon name="Activity" className="..." />
+      window.Icon = ({ name, size = 20, strokeWidth = 2, className = '', ...props }) => {
+        try {
+          const lib = window.lucide;
+          if (!lib || !lib.icons) return null;
+
+          const iconData = lib.icons[name];
+          if (!iconData) {
+            console.warn(`[Icon] Missing icon: ${name}`);
+            return null;
+          }
+
+          // Lucide core icon data is [tagName, attributes, children]
+          return React.createElement(
+            'svg',
+            {
+              xmlns: 'http://www.w3.org/2000/svg',
+              width: size,
+              height: size,
+              viewBox: '0 0 24 24',
+              fill: 'none',
+              stroke: 'currentColor',
+              strokeWidth: strokeWidth,
+              strokeLinecap: 'round',
+              strokeLinejoin: 'round',
+              className: `lucide lucide-${name.toLowerCase()} ${className}`,
+              ...props
+            },
+            iconData[2].map(([childTag, childAttrs]) =>
+              React.createElement(childTag, childAttrs)
+            )
+          );
+        } catch (err) {
+          return null;
+        }
+      };
+
+      // Map all React properties to the global window object for convenience
+      Object.keys(React).forEach(key => {
+        if (typeof React[key] === 'function' || typeof React[key] === 'object') {
+          window[key] = React[key];
+        }
+      });
+
+      // Unified Lucide Support: Create a proxy to handle 'import { ... } from "lucide-react"'
+      // which the parent transpiler maps to the 'LucideReact' global.
+      window.LucideReact = new Proxy({}, {
+        get: (target, name) => {
+          if (typeof name !== 'string') return target[name];
+          return (props) => React.createElement(window.Icon, { name, ...props });
+        }
+      });
+
+      // Special handling for AbortError to prevent spamming the console 
+      // during rapid HMR/remounts
+      const originalError = console.error;
+      console.error = (...args) => {
+        // Flatten arguments to search for AbortErrors
+        const argStrings = args.map(a => (typeof a === 'string' ? a : (a?.message || a?.stack || JSON.stringify(a))));
+        const isAbort = argStrings.some(s => s && (s.includes('AbortError') || s.includes('signal is aborted')));
+
+        if (isAbort) return;
+
+        // Try to find an actual error object or message in the arguments
+        const errorDetail = args.find(a => a instanceof Error) || args.find(a => typeof a === 'string' && a.length > 5) || args[0];
+
+        window.parent.postMessage({
+          type: 'RUNTIME_ERROR',
+          error: errorDetail?.message || (typeof errorDetail === 'string' ? errorDetail : 'Unknown Runtime Error'),
+          stack: errorDetail?.stack || argStrings.join(' ')
+        }, '*');
+
+        originalError.apply(console, args);
+      };
+
+      // Standardize the Supabase Client
+      if (window.supabase) {
+        // Only set the library reference if it has createClient
+        if (window.supabase.createClient) {
+          window._supabase_lib = window.supabase;
+        }
+
+        // If we have credentials, ensure a ready instance exists
+        if (window._SUPABASE_URL && window._SUPABASE_KEY && (!window.supabase || !window.supabase.from)) {
+          try {
+            const client = window._supabase_lib.createClient(window._SUPABASE_URL, window._SUPABASE_KEY);
+            window.supabase = client;
+            window.Supabase = client;
+            window.supabaseClient = client;
+            window.createClient = window._supabase_lib.createClient;
+          } catch (e) { }
+        }
+      }
+
+      console.log("[Sandbox] Universal Icon System Online");
+
+      // Standalone sync: Load from localStorage if opened in new tab or refreshed
+      const syncFromStorage = () => {
+        try {
+          const stored = localStorage.getItem('shipkernel_preview_data');
+          if (stored) {
+            const { code, componentName, path, supabaseUrl, supabaseKey } = JSON.parse(stored);
+            if (supabaseUrl) window._SUPABASE_URL = supabaseUrl;
+            if (supabaseKey) window._SUPABASE_KEY = supabaseKey;
+            currentPath = path || '/';
+            lastCode = code;
+            lastComponentName = componentName;
+            renderApp(code, componentName);
+          }
+        } catch (e) {
+          console.error("[Sandbox] Sync Error:", e);
+        }
+      };
+
+      if (window === window.top) {
+        syncFromStorage();
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'shipkernel_preview_data') syncFromStorage();
+        });
+      }
+
+      window.parent.postMessage({ type: 'PREVIEW_READY' }, '*');
+    };
+
+    let currentPath = '/';
+    let lastCode = null;
+    let lastComponentName = null;
+    let vfs = {}; // Virtual Filesystem
+
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'SET_PATH') {
+        currentPath = event.data.path;
+        window.locationPath = currentPath;
+        if (lastCode) renderApp(lastCode, lastComponentName);
+      }
+
+      if (event.data.type === 'EXECUTE_CODE') {
+        const { code, componentName, supabaseUrl, supabaseKey, files, entryPoint: msgEntryPoint } = event.data;
+        if (supabaseUrl) window._SUPABASE_URL = supabaseUrl;
+        if (supabaseKey) window._SUPABASE_KEY = supabaseKey;
+
+        if (files) {
+          vfs = files;
+          // Priority: 1. Passed entryPoint 2. App.tsx 3. First available file
+          const entryPoint = msgEntryPoint || (files['App.tsx'] ? 'App.tsx' : Object.keys(files)[0]);
+          renderVFS(entryPoint);
+        } else {
+          lastCode = code;
+          lastComponentName = componentName;
+          renderApp(code, componentName);
+        }
+      }
+    });
+
+    const renderVFS = (entryFile) => {
+      const rootEl = document.getElementById('root');
+      const moduleCache = {};
+
+      const resolvePath = (path, currentFile) => {
+        if (!path.startsWith('.')) return path;
+
+        const parts = currentFile.split('/');
+        parts.pop();
+        const pathParts = path.split('/');
+        for (const part of pathParts) {
+          if (part === '..') parts.pop();
+          else if (part !== '.') parts.push(part);
+        }
+        let resolved = parts.join('/');
+
+        // Extension resolving
+        const extensions = ['', '.tsx', '.ts', '.js', '/index.tsx', '/index.ts', '/index.js'];
+        for (const ext of extensions) {
+          if (vfs[resolved + ext]) return resolved + ext;
+        }
+        return resolved;
+      };
+
+      const require = (path, currentFile) => {
+        // External Libraries
+        if (path === 'react') return window.React;
+        if (path === 'react-dom') return window.ReactDOM;
+        if (path === 'lucide-react') return window.LucideReact;
+        if (path === 'framer-motion') return window.framerMotion;
+        if (path === '@supabase/supabase-js') return window._supabase_lib;
+
+        // Internal Bridge Mappings
+        if (path === '@/lib/supabase' || path === '@/integrations/supabase/client') {
+          return { supabase: window.supabase, default: window.supabase };
+        }
+
+        const resolved = resolvePath(path, currentFile);
+        if (moduleCache[resolved]) return moduleCache[resolved].exports;
+
+        const fileContent = vfs[resolved];
+        if (!fileContent) throw new Error(`Architecture Violation: Module not found: ${path} (resolved as ${resolved})`);
+
+        // Babel Mock Plugin for import.meta.env
+        const metaPlugin = ({ types: t }) => ({
+          visitor: {
+            MetaProperty(path) {
+              if (path.node.meta.name === 'import' && path.node.property.name === 'meta') {
+                path.replaceWith(t.identifier('window._import_meta_mock'));
+              }
+            }
+          }
+        });
+
+        const babelOptions = {
+          presets: ['react', ['env', { modules: 'commonjs' }]],
+          plugins: [metaPlugin],
+          filename: resolved
+        };
+
+        const transformed = Babel.transform(fileContent, babelOptions).code;
+        const module = { exports: {} };
+        moduleCache[resolved] = module;
+
+        const wrapper = new Function('require', 'exports', 'module', '__filename', transformed);
+        wrapper((p) => require(p, resolved), module.exports, module, resolved);
+
+        return module.exports;
+      };
+
+      try {
+        const entryModule = require(`./${entryFile}`, 'index.js');
+        const Component = entryModule.default || entryModule.App || entryModule;
+
+        if (!Component || (typeof Component !== 'function' && typeof Component !== 'object')) {
+          throw new Error(`Entry point "${entryFile}" did not export a valid React component.`);
+        }
+
+        if (!window.reactRoot) {
+          window.reactRoot = ReactDOM.createRoot(rootEl);
+        }
+        window.reactRoot.render(React.createElement(Component));
+      } catch (err) {
+        showError(err);
+      }
+    };
+
+    const showError = (err) => {
+      const rootEl = document.getElementById('root');
+      console.error("Runtime Error:", err);
+      if (window.reactRoot) {
+        try { window.reactRoot.unmount(); window.reactRoot = null; } catch (e) { }
+      }
+      rootEl.innerHTML = `
+        <div style="padding: 2rem; color: #ef4444; font-family: monospace; background: #000; min-height: 100vh;">
+          <h2 style="margin-bottom: 1rem;">Architecture Violation</h2>
+          <div style="border: 1px solid #ef4444; padding: 1rem; border-radius: 8px;">
+            <strong>${err.name}:</strong> ${err.message}
+            <pre style="margin-top: 1rem; opacity: 0.6; font-size: 0.8rem;">${err.stack}</pre>
+          </div>
+        </div>`;
+    };
+
+    const renderApp = (code, componentName) => {
+      const rootEl = document.getElementById('root');
+      try {
+        const babelOptions = {
+          presets: ['react'],
+          plugins: [
+            ({ types: t }) => ({
+              visitor: {
+                MetaProperty(path) {
+                  if (path.node.meta.name === 'import' && path.node.property.name === 'meta') {
+                    path.replaceWith(t.identifier('window._import_meta_mock'));
+                  }
+                }
+              }
+            })
+          ]
+        };
+
+        window._import_meta_mock = {
+          env: {
+            VITE_SUPABASE_URL: window._SUPABASE_URL || "",
+            VITE_SUPABASE_PUBLISHABLE_KEY: window._SUPABASE_KEY || ""
+          }
+        };
+
+        const transformed = Babel.transform(code, babelOptions).code;
+        const wrappedCode = `(function() { 
+          ${transformed} 
+          return window["${componentName}"] || (typeof ${componentName} !== "undefined" ? ${componentName} : null);
+        })()`;
+
+        const Component = eval(wrappedCode);
+        if (!Component) throw new Error(`Component ${componentName} not found.`);
+
+        if (!window.reactRoot) window.reactRoot = ReactDOM.createRoot(rootEl);
+        window.reactRoot.render(React.createElement(Component));
+      } catch (err) {
+        showError(err);
+      }
+    };
+
+    if (document.readyState === 'complete') init();
+    else window.addEventListener('load', init);
+  </script>
+</body>
+
+</html>
