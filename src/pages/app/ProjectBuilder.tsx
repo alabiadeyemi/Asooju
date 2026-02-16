@@ -140,6 +140,13 @@ const ProjectBuilder = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Handle Resize for Mobile detection
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Sync code to Sandbox
   useEffect(() => {
     if (iframeRef.current?.contentWindow && isPreviewReady) {

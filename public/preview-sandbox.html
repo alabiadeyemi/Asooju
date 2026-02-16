@@ -257,7 +257,7 @@
         });
 
         const babelOptions = {
-          presets: ['react', ['env', { modules: 'commonjs' }]],
+          presets: ['react', 'typescript', ['env', { modules: 'commonjs' }]],
           plugins: [metaPlugin],
           filename: resolved
         };
