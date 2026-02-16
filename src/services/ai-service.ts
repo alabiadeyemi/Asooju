@@ -183,6 +183,7 @@ export const generateArchitecture = async (prompt: string, vfs: Record<string, s
     - LIBRARIES (PRE-LOADED): 
       - Icons: import { Activity } from 'lucide-react'; (Mapped to <Icon name="Activity" /> internally).
       - Motion: import { motion } from 'framer-motion';
+      - Routing: import { HashRouter, Routes, Route } from 'react-router-dom'; (Wrap your App content in <HashRouter> if using hooks like useNavigate).
       - Supabase: import { supabase } from '@/lib/supabase'; (Pre-configured global 'supabase' is available).
     - ENTRY POINT: You MUST include 'App.tsx' which will be the main mount point.
 

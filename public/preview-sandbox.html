@@ -220,7 +220,7 @@
         if (path === 'react-dom') return window.ReactDOM;
         if (path === 'lucide-react') return window.LucideReact;
         if (path === 'framer-motion') return window.framerMotion;
-        if (path === 'react-router-dom') return window.ReactRouterDOM;
+        if (path === 'react-router-dom') return window.ReactRouterDOM || window.ReactRouter;
         if (path === '@supabase/supabase-js') return window._supabase_lib;
 
         // UI / Utility Mocks
@@ -283,13 +283,7 @@
         if (!window.reactRoot) {
           window.reactRoot = ReactDOM.createRoot(rootEl);
         }
-
-        // Wrap in HashRouter to support router hooks
-        const RootComponent = window.ReactRouterDOM ?
-          React.createElement(window.ReactRouterDOM.HashRouter, null, React.createElement(Component)) :
-          React.createElement(Component);
-
-        window.reactRoot.render(RootComponent);
+        window.reactRoot.render(React.createElement(Component));
       } catch (err) {
         showError(err);
       }
