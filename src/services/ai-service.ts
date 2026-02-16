@@ -196,7 +196,9 @@ export const generateArchitecture = async (prompt: string, vfs: Record<string, s
 
     ⚠️ THE HOLY RULES:
     1. ENTRY POINT: Your main component MUST be in 'App.tsx' and exported as 'default' or 'App'.
-    2. NO EXTERNAL IMPORTS: Only use the pre-loaded libraries listed above. Do not try to import from unpkg or other CDNs inside the code strings.`;
+    2. NO EXTERNAL IMPORTS: Only use the pre-loaded libraries listed above. Do not try to import from unpkg or other CDNs inside the code strings.
+    3. IMAGES: Use 'https://images.unsplash.com/...' or 'https://image.pollinations.ai/prompt/...' for images. DO NOT use placeholder services like 'ffffff?text=...' or '.png' only.
+    4. ROUTING: If adding multiple pages, you MUST wrap your App content in <HashRouter> and use <Routes>/<Route>. Ensure ALL navigation buttons use <Link> or 'useNavigate'.`;
 
     try {
         if (activeProvider === "gemini") {

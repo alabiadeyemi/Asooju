@@ -42,13 +42,9 @@
           const lib = window.lucide;
           if (!lib || !lib.icons) return null;
 
-          const iconData = lib.icons[name];
-          if (!iconData) {
-            console.warn(`[Icon] Missing icon: ${name}`);
-            return null;
-          }
+          const iconData = lib.icons[name] || lib.icons['HelpCircle'] || lib.icons['Box'];
+          if (!iconData) return null;
 
-          // Lucide core icon data is [tagName, attributes, children]
           return React.createElement(
             'svg',
             {
@@ -61,7 +57,7 @@
               strokeWidth: strokeWidth,
               strokeLinecap: 'round',
               strokeLinejoin: 'round',
-              className: `lucide lucide-${name.toLowerCase()} ${className}`,
+              className: `lucide lucide-${(name || 'box').toLowerCase()} ${className}`,
               ...props
             },
             iconData[2].map(([childTag, childAttrs]) =>
