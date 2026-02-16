@@ -10,6 +10,7 @@
   <!-- Use core Lucide (data only, no React dependency) to prevent crashing -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+  <script src="https://unpkg.com/react-router-dom@6.11.2/dist/umd/react-router-dom.production.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     body {
@@ -219,7 +220,19 @@
         if (path === 'react-dom') return window.ReactDOM;
         if (path === 'lucide-react') return window.LucideReact;
         if (path === 'framer-motion') return window.framerMotion;
+        if (path === 'react-router-dom') return window.ReactRouterDOM;
         if (path === '@supabase/supabase-js') return window._supabase_lib;
+
+        // UI / Utility Mocks
+        if (path === 'sonner') {
+          return {
+            toast: Object.assign((m) => console.log(`[Toast] ${m}`), {
+              success: (m) => console.log(`[Toast Success] ${m}`),
+              error: (m) => console.log(`[Toast Error] ${m}`),
+              loading: (m) => console.log(`[Toast Loading] ${m}`),
+            })
+          };
+        }
 
         // Internal Bridge Mappings
         if (path === '@/lib/supabase' || path === '@/integrations/supabase/client') {
@@ -270,7 +283,13 @@
         if (!window.reactRoot) {
           window.reactRoot = ReactDOM.createRoot(rootEl);
         }
-        window.reactRoot.render(React.createElement(Component));
+
+        // Wrap in HashRouter to support router hooks
+        const RootComponent = window.ReactRouterDOM ?
+          React.createElement(window.ReactRouterDOM.HashRouter, null, React.createElement(Component)) :
+          React.createElement(Component);
+
+        window.reactRoot.render(RootComponent);
       } catch (err) {
         showError(err);
       }
