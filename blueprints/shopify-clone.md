@@ -1,7 +1,7 @@
 # SHOPIFY CLONE — FULL FEATURE & FLOW SPEC
 
 Build a **Shopify-class commerce OS**: merchant admin + online storefront + checkout + orders/fulfillment + customers + payments/shipping + marketing + multi-channel + B2B + apps/extensibility.  
-Stack preference for this exercise: **React admin + storefront**, mock or real Stripe for payments, local VFS multifile app. Prioritize **correct flows and data model** over pixel-perfect Shopify UI.
+Stack preference for this exercise: **React admin + storefront**, mock or real Stripe for payments, local VFS multifile app. Prioritize **correct flows and data model** over pixel-perfect Shopify UI
 
 ---
 
@@ -25,9 +25,14 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 
 ---
 
+
+
 ## 1. Catalog & merchandising
 
+
+
 ### Products
+
 - Product CRUD (title, description/HTML, status: active/draft/archived)
 - Media gallery (images/video), alt text, featured image
 - Vendor, product type, tags
@@ -48,7 +53,10 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 - Unit pricing, measurement
 - Product publishing to channels (Online Store, POS, Shop, etc.)
 
+
+
 ### Pricing & tax
+
 - Catalog price, compare-at (sale), cost (margin)
 - Price lists / catalogs (B2B)
 - Taxes: regions, overrides, include/exclude tax in prices
@@ -57,9 +65,14 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 
 ---
 
+
+
 ## 2. Online storefront (buyer-facing)
 
+
+
 ### Theme system
+
 - Themes / theme editor (sections, blocks, settings)
 - Templates: home, product, collection, cart, search, page, blog, 404, password, customer account
 - Navigation menus (header/footer), nested links
@@ -71,15 +84,20 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 - Cookie / consent banner hooks
 - Accelerated checkout buttons (Shop Pay / Apple Pay / Google Pay style)
 
+
+
 ### Buyer journeys (must implement)
-1. Browse home → collection → product → add to cart  
-2. Search → product  
-3. Cart drawer / cart page → checkout  
-4. Customer login → order history → reorder  
-5. Wishlist / recently viewed (common; often app—optional)  
+
+1. Browse home → collection → product → add to cart
+2. Search → product
+3. Cart drawer / cart page → checkout
+4. Customer login → order history → reorder
+5. Wishlist / recently viewed (common; often app—optional)
 6. Abandoned cart recovery email (admin-triggered mock OK)
 
 ---
+
+
 
 ## 3. Cart
 
@@ -94,16 +112,24 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 
 ---
 
+
+
 ## 4. Checkout (critical Shopify DNA)
 
+
+
 ### Steps
-1. **Information** — email/phone, shipping address, marketing opt-in  
-2. **Shipping** — rate picker, delivery method, pickup  
-3. **Payment** — card / wallet / COD / invoice terms (B2B)  
-4. **Thank you** — order confirmation  
-5. **Order status** — tracking page  
+
+1. **Information** — email/phone, shipping address, marketing opt-in
+2. **Shipping** — rate picker, delivery method, pickup
+3. **Payment** — card / wallet / COD / invoice terms (B2B)
+4. **Thank you** — order confirmation
+5. **Order status** — tracking page
+
+
 
 ### Checkout features
+
 - Guest checkout + optional account create
 - Address validation / autocomplete
 - Shipping rates (flat, weight, price, carrier-calculated)
@@ -121,17 +147,25 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 - Post-purchase upsell page
 - Web pixels / analytics events (checkout_started, payment_info, purchase)
 
+
+
 ### Checkout states & failures
+
 - Payment declined → retry  
 - Inventory stockout mid-checkout → adjust  
 - Address not serviceable → block shipping  
-- Fraud hold → order authorized but not captured  
+- Fraud hold → order authorized but not captured
 
 ---
 
+
+
 ## 5. Customers & accounts
 
+
+
 ### Customer admin
+
 - Customer profile: name, email, phone, tags, notes, tax exempt
 - Addresses (multiple)
 - Order history, RFM-ish stats (orders count, total spent)
@@ -140,7 +174,10 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 - Merge customers (conceptual)
 - Store credit / gift card balance
 
+
+
 ### Customer accounts (storefront)
+
 - Login / register / reset password  
 - Profile & addresses  
 - Orders list + detail + invoice PDF stub  
@@ -150,37 +187,57 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 
 ---
 
+
+
 ## 6. Orders — full lifecycle (OMS)
 
+
+
 ### Order creation sources
+
 - Online checkout  
 - Draft order (admin/phone/wholesale) → invoice link  
 - POS  
 - Subscription recurring charge  
-- Marketplace/channel import  
+- Marketplace/channel import
+
+
 
 ### Order object fields
+
 - Order number, name (#1001), timestamps  
 - Line items, discounts, shipping, tax, totals  
 - Customer, shipping/billing address  
 - Tags, notes, risk level  
 - Financial status, fulfillment status, return status  
-- Timeline / events log  
+- Timeline / events log
+
+
 
 ### Financial / payment statuses
+
 - Pending, authorized, partially paid, paid, partially refunded, refunded, voided  
 - Capture / void authorization  
-- Multi-capture / partial capture  
+- Multi-capture / partial capture
+
+
 
 ### Fulfillment statuses
+
 - Unfulfilled, partially fulfilled, fulfilled  
 - Scheduled (prepaid subscriptions)  
-- On hold / restocked  
+- On hold / restocked
+
+
 
 ### Return statuses
-- Return requested → approved/declined → in progress → returned / inspected  
+
+- Return requested → approved/declined → in progress → returned / inspected
+
+
 
 ### Merchant order actions
+
 - View / search / filter / saved views / bulk actions  
 - Fulfill (full/partial), add tracking, notify customer  
 - Cancel order, refund (full/partial), restock  
@@ -188,9 +245,12 @@ Stack preference for this exercise: **React admin + storefront**, mock or real S
 - Duplicate / archive  
 - Print packing slip / invoice / shipping label  
 - Request fulfillment from 3PL location  
-- Split fulfillments by location  
+- Split fulfillments by location
+
+
 
 ### End-to-end order flow (implement as state machine)
+
 ```
 Cart → Checkout → Payment authorized/paid
   → Order Open + Unfulfilled
@@ -204,6 +264,8 @@ Cart → Checkout → Payment authorized/paid
 
 ---
 
+
+
 ## 7. Inventory & locations
 
 - Locations (warehouse, retail, pop-up)  
@@ -213,9 +275,11 @@ Cart → Checkout → Payment authorized/paid
 - Low-stock alerts  
 - Inventory adjustments + reason codes  
 - Order routing: nearest location, priority list, Functions-style rules (stub)  
-- Over-selling rules  
+- Over-selling rules
 
 ---
+
+
 
 ## 8. Shipping & delivery
 
@@ -228,9 +292,11 @@ Cart → Checkout → Payment authorized/paid
 - Shipping labels purchase + void  
 - Packing slips  
 - Duties & customs for international  
-- Delivery status tracking UI  
+- Delivery status tracking UI
 
 ---
+
+
 
 ## 9. Payments & money movement
 
@@ -243,9 +309,11 @@ Cart → Checkout → Payment authorized/paid
 - Refunds & chargebacks queue (stub)  
 - Payouts / balance (Shopify Payments–like dashboard stub)  
 - Multi-currency settlement notes  
-- B2B: vaulted cards, ACH, net terms, payment requests, deposits, partial pay  
+- B2B: vaulted cards, ACH, net terms, payment requests, deposits, partial pay
 
 ---
+
+
 
 ## 10. Discounts & promotions
 
@@ -255,9 +323,11 @@ Cart → Checkout → Payment authorized/paid
 - Combines with / excludes other discounts  
 - Quantity breaks / volume pricing  
 - Flash sales / compare-at  
-- Referral / affiliate hooks (optional)  
+- Referral / affiliate hooks (optional)
 
 ---
+
+
 
 ## 11. Marketing & CRM-lite
 
@@ -266,9 +336,11 @@ Cart → Checkout → Payment authorized/paid
 - Campaign stubs (email/SMS)  
 - Shopify Audiences–like lookalikes (conceptual)  
 - Shopify Magic / AI: product description, email draft (optional)  
-- Discount automation via Flow  
+- Discount automation via Flow
 
 ---
+
+
 
 ## 12. Content & SEO
 
@@ -277,9 +349,11 @@ Cart → Checkout → Payment authorized/paid
 - Canonical handles  
 - Sitemap / robots concepts  
 - Meta fields for SEO  
-- Structured data (Product JSON-LD)  
+- Structured data (Product JSON-LD)
 
 ---
+
+
 
 ## 13. Analytics & reports
 
@@ -288,9 +362,11 @@ Cart → Checkout → Payment authorized/paid
 - Reports: sales by product/channel/region, customers, finance, inventory  
 - Custom report builder (Plus/Advanced-ish)  
 - Export CSV  
-- Attribution: channel, UTM  
+- Attribution: channel, UTM
 
 ---
+
+
 
 ## 14. Staff, permissions, settings
 
@@ -305,9 +381,11 @@ Cart → Checkout → Payment authorized/paid
 - Locations & shipping  
 - Payments providers  
 - Checkout language  
-- Plan / billing for the merchant (meta)  
+- Plan / billing for the merchant (meta)
 
 ---
+
+
 
 ## 15. Sales channels
 
@@ -316,9 +394,11 @@ Cart → Checkout → Payment authorized/paid
 - Shop app channel  
 - Facebook/Instagram/TikTok/Google listings (publish stubs)  
 - Wholesale channel / B2B  
-- Headless / custom storefront via Storefront API mindset  
+- Headless / custom storefront via Storefront API mindset
 
 ---
+
+
 
 ## 16. Markets & international
 
@@ -328,9 +408,11 @@ Cart → Checkout → Payment authorized/paid
 - Domain / subfolder per market  
 - Catalogs / pricing per market  
 - Duties & import taxes at checkout  
-- Geolocation redirect  
+- Geolocation redirect
 
 ---
+
+
 
 ## 17. B2B (native Shopify B2B)
 
@@ -341,9 +423,11 @@ Cart → Checkout → Payment authorized/paid
 - Draft orders & invoice links  
 - Self-serve reorder portal  
 - Deposits / partial payments / payment-per-fulfillment (Plus-depth)  
-- B2B-only checkout context  
+- B2B-only checkout context
 
 ---
+
+
 
 ## 18. Subscriptions
 
@@ -352,9 +436,11 @@ Cart → Checkout → Payment authorized/paid
 - Scheduled fulfillments  
 - Dunning (failed renewal retry)  
 - Customer portal: skip / pause / swap / cancel  
-- Merchant: subscription orders list  
+- Merchant: subscription orders list
 
 ---
+
+
 
 ## 19. Returns & exchanges
 
@@ -364,9 +450,11 @@ Cart → Checkout → Payment authorized/paid
 - Return shipping label  
 - Refund / store credit / exchange  
 - Restock inventory  
-- Inspection complete state  
+- Inspection complete state
 
 ---
+
+
 
 ## 20. Apps, extensions, automation (platform layer)
 
@@ -380,22 +468,28 @@ Even in a clone, model the **architecture**:
 - Webhooks: orders/create, products/update, refunds/create, etc.  
 - Admin GraphQL + Storefront API style endpoints  
 - Web pixels / customer events  
-- Theme app extensions  
+- Theme app extensions
+
+
 
 ### Plus / enterprise extras
+
 - Organization admin (multi-store)  
 - Expansion stores  
 - Unlimited staff  
 - Launchpad (scheduled theme/campaign launches)  
 - Higher API limits  
 - Deeper checkout extensibility + custom Function apps  
-- Advanced B2B catalog assignment  
+- Advanced B2B catalog assignment
 
 ---
+
+
 
 ## 21. Notifications & communications
 
 Transactional emails/SMS (templates + variables):
+
 - Order confirmation  
 - Shipping confirmation + tracking  
 - Delivery updates  
@@ -403,9 +497,11 @@ Transactional emails/SMS (templates + variables):
 - Abandoned checkout  
 - Account invite / reset password  
 - Return updates  
-- Payment reminder (B2B)  
+- Payment reminder (B2B)
 
 ---
+
+
 
 ## 22. Fraud, risk, compliance
 
@@ -414,9 +510,11 @@ Transactional emails/SMS (templates + variables):
 - Address verification  
 - PCI-aware checkout (never store raw PAN—tokenize)  
 - GDPR/CCPA: data export/delete stubs  
-- Tax invoices  
+- Tax invoices
 
 ---
+
+
 
 ## 23. Data model (minimum entities)
 
@@ -430,40 +528,46 @@ Transactional emails/SMS (templates + variables):
 
 ---
 
+
+
 ## 24. Admin IA (screens to build)
 
-1. Home dashboard  
-2. Orders (+ detail, draft orders, abandoned checkouts)  
-3. Products (+ collections, inventory, transfers, purchase orders stub)  
-4. Customers (+ segments, companies)  
-5. Marketing (discounts, campaigns, automations)  
-6. Analytics  
-7. Discounts  
-8. Content (pages, blog, menus)  
-9. Markets  
-10. Online Store (themes, domains, preferences)  
-11. Sales channels  
-12. Settings (payments, shipping, taxes, locations, notifications, users, checkout, legal)  
-13. Apps  
+1. Home dashboard
+2. Orders (+ detail, draft orders, abandoned checkouts)
+3. Products (+ collections, inventory, transfers, purchase orders stub)
+4. Customers (+ segments, companies)
+5. Marketing (discounts, campaigns, automations)
+6. Analytics
+7. Discounts
+8. Content (pages, blog, menus)
+9. Markets
+10. Online Store (themes, domains, preferences)
+11. Sales channels
+12. Settings (payments, shipping, taxes, locations, notifications, users, checkout, legal)
+13. Apps
 
 ---
+
+
 
 ## 25. Acceptance scenarios (prove it’s Shopify-smart)
 
-1. Create product with 2 options → 4 variants → publish → buy on storefront → paid order → fulfill with tracking → email  
-2. Apply code + free shipping threshold → tax calculated → thank-you page  
-3. Draft order invoice → customer pays → appears in Orders  
-4. Partial fulfill from Location A, rest from B  
-5. Return 1 item → restock → partial refund  
-6. Customer account sees order + reorder  
-7. B2B company catalog cheaper price + Net 30 checkout path  
-8. Subscription product creates scheduled fulfillments  
-9. Multi-currency market shows converted prices  
-10. Staff with limited permissions cannot see payouts  
-11. Inventory hits 0 → storefront shows sold out (unless continue selling)  
-12. Discount auto BXGY works without code  
+1. Create product with 2 options → 4 variants → publish → buy on storefront → paid order → fulfill with tracking → email
+2. Apply code + free shipping threshold → tax calculated → thank-you page
+3. Draft order invoice → customer pays → appears in Orders
+4. Partial fulfill from Location A, rest from B
+5. Return 1 item → restock → partial refund
+6. Customer account sees order + reorder
+7. B2B company catalog cheaper price + Net 30 checkout path
+8. Subscription product creates scheduled fulfillments
+9. Multi-currency market shows converted prices
+10. Staff with limited permissions cannot see payouts
+11. Inventory hits 0 → storefront shows sold out (unless continue selling)
+12. Discount auto BXGY works without code
 
 ---
+
+
 
 ## 26. Build priority for the AI agent
 
@@ -484,6 +588,8 @@ Org/multi-store, Functions, advanced checkout UI, Launchpad
 
 ---
 
+
+
 ## 27. Explicit non-goals (unless asked)
 
 - Cloning every App Store app  
@@ -493,8 +599,11 @@ Org/multi-store, Functions, advanced checkout UI, Launchpad
 
 ---
 
+
+
 ### One-liner prompt you can paste first
 
 > Build a Shopify clone as a multifile React app: merchant admin + storefront + checkout. Implement the full commerce state machine (cart → checkout → payment statuses → fulfillment orders → tracking → returns/refunds/restock), products/variants/collections, multi-location inventory, shipping zones/rates, discount codes + automatic discounts, customers/accounts, draft orders, gift cards, basic Markets multi-currency, B2B companies/catalogs/net terms (even if simplified), subscription selling plans with scheduled fulfillments, staff roles, analytics dashboard, and extension points for apps/webhooks/Flow. Prioritize correct entities and flows over pixel-perfect Shopify UI. Ship Phase A end-to-end first, then B–D.
 
 ---
+
