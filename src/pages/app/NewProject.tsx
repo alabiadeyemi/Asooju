@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,20 +9,45 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
+import { PROJECT_TEMPLATES } from "@/lib/templates";
+import { cloneVfs } from "@/lib/vfs";
+import { useProjects } from "@/hooks/use-projects";
 
-const templates = [
-  { id: "blank", name: "Blank Start", desc: "Start with a clean slate", icon: Target, complexity: "Simple" },
-  { id: "saas", name: "SaaS Starter", desc: "Login, payments, and dashboard", icon: ShieldCheck, complexity: "Medium" },
-  { id: "ecommerce", name: "Online Store", desc: "Products, cart, and checkout", icon: ShoppingBag, complexity: "Advanced" },
-  { id: "blog", name: "Blog / News", desc: "Simple posts and editor", icon: FileText, complexity: "Easy" },
-  { id: "chat", name: "Chat App", desc: "Real-time messaging system", icon: MessageSquare, complexity: "Medium" },
-];
+const templates = PROJECT_TEMPLATES.map((t) => ({
+  id: t.id,
+  name: t.title,
+  desc: t.desc,
+  icon:
+    t.id === "saas"
+      ? ShieldCheck
+      : t.id === "ecommerce"
+        ? ShoppingBag
+        : t.id === "blog"
+          ? FileText
+          : t.id === "chat"
+            ? MessageSquare
+            : t.id === "portfolio"
+              ? Globe
+              : Target,
+  complexity: Object.keys(t.vfs).length > 3 ? "Medium" : "Simple",
+  prompt: t.prompt,
+  vfs: t.vfs,
+}));
 
 const NewProject = () => {
   const [name, setName] = useState("");
   const [template, setTemplate] = useState("blank");
   const [step, setStep] = useState(1);
-  const navigate = useNavigate();
+  const { createProject, isCreating } = useProjects();
+
+  const handleCreate = () => {
+    const selected = templates.find((t) => t.id === template) || templates[0];
+    createProject(selected.prompt, {
+      templateId: selected.id,
+      name: name.trim() || selected.name,
+      vfs: cloneVfs(selected.vfs),
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#020202] text-white p-6 lg:p-24 selection:bg-primary/30 relative overflow-hidden">
@@ -154,10 +179,11 @@ const NewProject = () => {
                 <Button
                   size="lg"
                   variant="hero"
-                  onClick={() => navigate("/app/projects/new-project")}
+                  disabled={isCreating}
+                  onClick={handleCreate}
                   className="h-14 px-12 rounded-full bg-white text-black hover:bg-white/90 text-[11px] font-black uppercase tracking-[0.3em] shadow-xl group"
                 >
-                  Create Project
+                  {isCreating ? "Creating..." : "Create Project"}
                   <Rocket className="w-4 h-4 ml-3 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button

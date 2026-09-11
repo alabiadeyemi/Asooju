@@ -24,13 +24,18 @@ export default function Signup() {
     setIsLoading(true);
     setAuthError(null);
     try {
-      await signUpWithEmail(email, password, {
+      const result = await signUpWithEmail(email, password, {
         data: {
           first_name: firstName,
           last_name: lastName,
-          full_name: `${firstName} ${lastName}`.trim()
-        }
+          full_name: `${firstName} ${lastName}`.trim(),
+        },
       });
+      if (result.needsEmailVerification) {
+        navigate(`/auth/verify?email=${encodeURIComponent(result.email)}`, { replace: true });
+      } else {
+        navigate("/auth/onboarding", { replace: true });
+      }
     } catch (error: any) {
       setAuthError(error.message || "Registration failed. Please try again.");
     } finally {

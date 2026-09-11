@@ -9,7 +9,7 @@ import {
   Sparkles, Heart, Smartphone, Smile, Send,
   Terminal as TerminalIcon, Cpu, Globe, Search, ChevronRight,
   Monitor, Layout, ShoppingBag, MessageSquare, Briefcase,
-  Image as ImageIcon, Paperclip, Mic, Globe2, RefreshCcw
+  RefreshCcw
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useProjects } from "@/hooks/use-projects";
@@ -123,44 +123,26 @@ const Index = () => {
                 />
               </div>
 
-              {/* Toolbar */}
+              {/* Prompt actions */}
               <div className="flex items-center justify-between border-t border-white/5 pt-4">
-                <div className="flex items-center gap-1">
-                  <button className="p-2.5 rounded-xl hover:bg-white/5 text-muted-foreground/40 hover:text-white transition-all">
-                    <Paperclip className="w-4 h-4" />
-                  </button>
-                  <button className="p-2.5 rounded-xl hover:bg-white/5 text-muted-foreground/40 hover:text-white transition-all">
-                    <ImageIcon className="w-4 h-4" />
-                  </button>
-                  <button className="p-2.5 rounded-xl hover:bg-white/5 text-muted-foreground/40 hover:text-white transition-all">
-                    <Globe2 className="w-4 h-4" />
-                  </button>
-                  <div className="w-px h-6 bg-white/5 mx-2" />
-                  <button className="p-2.5 rounded-xl hover:bg-white/5 text-muted-foreground/40 hover:text-white transition-all">
-                    <Mic className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/20 hidden sm:block">
-                    {prompt.length > 0 ? `${prompt.length} chars` : 'Markdown supported'}
-                  </span>
-                  <Button
-                    variant="hero"
-                    disabled={!prompt || isCreating}
-                    onClick={() => createProject(prompt)}
-                    className="rounded-2xl h-11 px-8 text-[11px] font-black uppercase tracking-widest bg-white text-black hover:bg-white/90 shadow-2xl transition-all flex items-center gap-2 active:scale-95 disabled:opacity-10"
-                  >
-                    {isCreating ? (
-                      <><RefreshCcw className="w-3.5 h-3.5 animate-spin mr-2" /> Building...</>
-                    ) : (
-                      <>
-                        Create App
-                        <Send className="w-3.5 h-3.5 group-focus-within:translate-x-0.5 group-focus-within:-translate-y-0.5 transition-transform" />
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/25 hidden sm:block">
+                  {prompt.length > 0 ? `${prompt.length} chars` : "Describe your app"}
+                </span>
+                <Button
+                  variant="hero"
+                  disabled={!prompt || isCreating}
+                  onClick={() => createProject(prompt)}
+                  className="rounded-2xl h-11 px-8 text-[11px] font-black uppercase tracking-widest bg-white text-black hover:bg-white/90 shadow-2xl transition-all flex items-center gap-2 active:scale-95 disabled:opacity-10 ml-auto"
+                >
+                  {isCreating ? (
+                    <><RefreshCcw className="w-3.5 h-3.5 animate-spin mr-2" /> Building...</>
+                  ) : (
+                    <>
+                      Create App
+                      <Send className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </motion.div>
@@ -378,7 +360,7 @@ const Index = () => {
 
             <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white mb-10 leading-[0.9]">Start building Now</h2>
             <p className="text-lg text-muted-foreground/60 max-w-sm mx-auto mb-12 font-medium">
-              Join thousands of others making stuff they love. It's free to try!
+              Join thousands of builders shipping real software. It's free to try!
             </p>
             <Button variant="hero" size="lg" className="h-16 px-12 text-[15px] font-black uppercase tracking-widest rounded-[22px] bg-white text-black hover:bg-white/90 shadow-2xl transition-all" asChild>
               <Link to="/auth/signup">

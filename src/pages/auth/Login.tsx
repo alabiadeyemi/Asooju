@@ -23,8 +23,12 @@ export default function Login() {
     setAuthError(null);
     try {
       await loginWithEmail(email, password);
-      navigate("/app");
+      navigate("/auth/onboarding");
     } catch (error: any) {
+      if (error?.code === "EMAIL_NOT_CONFIRMED" || error?.message === "EMAIL_NOT_CONFIRMED") {
+        navigate(`/auth/verify?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+        return;
+      }
       setAuthError(error.message || "Invalid login credentials");
     } finally {
       setIsLoading(false);
@@ -76,9 +80,9 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between ml-1">
                   <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Password</Label>
-                  <Link to="/auth/forgot-password" title="Forgot Password" className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors">
-                    Forgot?
-                  </Link>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
+                    Password reset via email is not configured yet
+                  </span>
                 </div>
                 <div className="relative">
                   <Input

@@ -27,7 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { validateOpenAIKey, validateGrokKey, validateGeminiKey } from "@/services/ai-service";
+import { validateOpenAIKey, validateGrokKey, validateGeminiKey, validateClaudeKey, validateDeepSeekKey, probeProvider, providerIdFromLabel } from "@/services/ai-service";
+import { ApiKeyTestButton } from "@/components/app/ApiKeyTestButton";
+import { useAuth } from "@/hooks/use-auth";
+import { useBilling } from "@/hooks/use-billing";
+import { useCheckout } from "@/hooks/use-checkout";
+import { FREE_WELCOME_CREDITS, PRO_MONTHLY_CREDITS, PRO_PRICE_LABEL } from "@/lib/billing";
+import { supabase } from "@/integrations/supabase/client";
 
 const tabs = [
   { id: "account", label: "My Account", icon: User, href: "/app/settings" },
@@ -37,18 +43,29 @@ const tabs = [
 ];
 
 const providers = [
-  { id: "openai", name: "OpenAI", desc: "Most popular for smart code", latency: "Fast", reliability: "High" },
-  { id: "gemini", name: "Google Gemini", desc: "Super fast and efficient", latency: "Ultra", reliability: "High" },
-  { id: "claude", name: "Anthropic Claude", desc: "Great for understanding complexity", latency: "Medium", reliability: "High" },
+  { id: "openai", name: "OpenAI", desc: "GPT models for strong coding", latency: "Fast", reliability: "High" },
+  { id: "gemini", name: "Google Gemini", desc: "Fast multimodal generation", latency: "Ultra", reliability: "High" },
+  { id: "claude", name: "Anthropic Claude", desc: "Great for complex refactors", latency: "Medium", reliability: "High" },
   { id: "grok", name: "xAI Grok", desc: "Real-time knowledge focus", latency: "Fast", reliability: "High" },
-  { id: "auto", name: "Pick for me", desc: "We'll choose the best model for you", latency: "Variable", reliability: "Smart" },
+  { id: "deepseek", name: "DeepSeek", desc: "Strong coding at low cost", latency: "Fast", reliability: "High" },
+  { id: "auto", name: "Pick for me", desc: "Uses OpenAI when available", latency: "Variable", reliability: "Smart" },
 ];
 
 const Settings = () => {
   const location = useLocation();
-  const [selectedProvider, setSelectedProvider] = useState(() =>
-    localStorage.getItem('shipkernel_active_provider') || "auto"
+  const { user, isGuest, logout } = useAuth();
+  const { profile, loading: billingLoading, remaining, planLabel, byok, isPro, refresh: refreshBilling } = useBilling();
+  const { startCheckout, openPortal, isProcessing } = useCheckout();
+  const [displayName, setDisplayName] = useState(
+    () => user?.user_metadata?.full_name || user?.email?.split("@")[0] || ""
   );
+  const [selectedProvider, setSelectedProvider] = useState(() =>
+    localStorage.getItem('shipkernel_active_provider') || "openai"
+  );
+
+  useEffect(() => {
+    setDisplayName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "");
+  }, [user]);
 
   useEffect(() => {
     localStorage.setItem('shipkernel_active_provider', selectedProvider);
@@ -90,7 +107,6 @@ const Settings = () => {
       return;
     }
 
-    // Basic format validation
     if (newKeyData.provider === "openai" && !cleanValue.startsWith("sk-")) {
       toast.error("Invalid Key Format", {
         description: "OpenAI keys must start with 'sk-'. Please check your input."
@@ -99,7 +115,7 @@ const Settings = () => {
     }
 
     setIsValidating(true);
-    let validation: { success: boolean; error?: string } = { success: true };
+    let validation: { success: boolean; error?: string; model?: string } = { success: true };
 
     if (newKeyData.provider === "openai") {
       validation = await validateOpenAIKey(cleanValue);
@@ -107,6 +123,12 @@ const Settings = () => {
       validation = await validateGrokKey(cleanValue);
     } else if (newKeyData.provider === "gemini") {
       validation = await validateGeminiKey(cleanValue);
+    } else if (newKeyData.provider === "claude") {
+      validation = await validateClaudeKey(cleanValue);
+    } else if (newKeyData.provider === "deepseek") {
+      validation = await validateDeepSeekKey(cleanValue);
+    } else {
+      validation = await probeProvider(newKeyData.provider, cleanValue);
     }
 
     if (!validation.success) {
@@ -114,14 +136,19 @@ const Settings = () => {
       toast.warning("Validation Warning", {
         description: "Your key couldn't be automatically verified, but we saved it anyway. It might still work during generation."
       });
-      // Do not return here - allow the save to proceed
+    } else if (validation.model) {
+      toast.success(`Verified · ${validation.model}`);
     }
+
+    const providerLabel =
+      newKeyData.provider === "openai" ? "OpenAI" :
+      newKeyData.provider === "gemini" ? "Gemini" :
+      newKeyData.provider === "claude" ? "Claude" :
+      newKeyData.provider === "deepseek" ? "DeepSeek" : "Grok";
 
     const newKey = {
       id: Math.random().toString(36).substr(2, 9),
-      provider: newKeyData.provider === "openai" ? "OpenAI" :
-        newKeyData.provider === "gemini" ? "Gemini" :
-          newKeyData.provider === "claude" ? "Claude" : "Grok",
+      provider: providerLabel,
       name: newKeyData.name,
       value: cleanValue,
       added: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -131,21 +158,28 @@ const Settings = () => {
     setKeys(updatedKeys);
     localStorage.setItem('shipkernel_keys', JSON.stringify(updatedKeys));
 
-    // Sync with individual keys for backwards compatibility and easy fallback access
     if (newKeyData.provider === "openai") {
       localStorage.setItem('shipkernel_openai_key', cleanValue);
     } else if (newKeyData.provider === "gemini") {
       localStorage.setItem('shipkernel_gemini_key', cleanValue);
     } else if (newKeyData.provider === "grok") {
       localStorage.setItem('shipkernel_grok_key', cleanValue);
+    } else if (newKeyData.provider === "claude") {
+      localStorage.setItem('shipkernel_claude_key', cleanValue);
+    } else if (newKeyData.provider === "deepseek") {
+      localStorage.setItem('shipkernel_deepseek_key', cleanValue);
     }
 
     setIsValidating(false);
     setIsAddingKey(false);
     setNewKeyData({ provider: "openai", name: "", value: "" });
-    toast.success("API Key Verified & Added", {
-      description: "You can now use this key for AI generation."
-    });
+    if (validation.success) {
+      toast.success("API Key Verified & Added", {
+        description: validation.model
+          ? `Auto-selected model: ${validation.model}`
+          : "You can now use this key for AI generation."
+      });
+    }
   };
 
   const handleDeleteKey = (id: string) => {
@@ -222,63 +256,175 @@ const Settings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
                         <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 ml-1">Email Address</Label>
-                        <Input defaultValue="developer@example.com" disabled className="h-12 bg-white/5 border-white/5 rounded-xl text-white/40 font-mono" />
+                        <Input
+                          value={isGuest ? "guest@local.dev" : (user?.email || "")}
+                          disabled
+                          className="h-12 bg-white/5 border-white/5 rounded-xl text-white/40 font-mono"
+                        />
                       </div>
                       <div className="space-y-3">
-                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 ml-1">Username</Label>
-                        <Input defaultValue="Alex" className="h-12 bg-white/5 border-white/10 rounded-xl focus-visible:ring-primary/20" />
+                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 ml-1">Display name</Label>
+                        <Input
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          disabled={isGuest}
+                          className="h-12 bg-white/5 border-white/10 rounded-xl focus-visible:ring-primary/20"
+                        />
                       </div>
                     </div>
-                    <Button variant="hero" className="rounded-xl px-10 h-11 bg-white text-black hover:bg-white/90">Save Profile</Button>
+                    <Button
+                      variant="hero"
+                      className="rounded-xl px-10 h-11 bg-white text-black hover:bg-white/90"
+                      disabled={isGuest}
+                      onClick={async () => {
+                        if (isGuest) {
+                          toast.message("Guest accounts can’t update a cloud profile");
+                          return;
+                        }
+                        const { error } = await supabase.auth.updateUser({
+                          data: { full_name: displayName },
+                        });
+                        if (error) toast.error(error.message);
+                        else toast.success("Profile updated");
+                      }}
+                    >
+                      Save Profile
+                    </Button>
                   </div>
 
                   <div className="rounded-[32px] border border-red-500/10 bg-red-500/5 p-8 backdrop-blur-3xl">
                     <h2 className="text-lg font-bold text-red-400 mb-2 uppercase tracking-tight">Danger Zone</h2>
-                    <p className="text-sm text-red-300/40 mb-6">Permanently delete your account and all your projects.</p>
-                    <Button variant="outline" className="h-10 px-6 rounded-xl border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all text-[11px] font-bold uppercase tracking-widest">
+                    <p className="text-sm text-red-300/40 mb-6">
+                      {isGuest
+                        ? "Clear local guest data and return to the homepage."
+                        : "Sign out. Full account deletion isn’t wired yet — contact support to remove your Supabase user."}
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="h-10 px-6 rounded-xl border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all text-[11px] font-bold uppercase tracking-widest"
+                      onClick={async () => {
+                        if (isGuest) {
+                          localStorage.removeItem("shipkernel_local_projects");
+                          await logout();
+                          window.location.href = "/";
+                          return;
+                        }
+                        toast.message("Account deletion isn’t available in-app yet", {
+                          description: "Use Sign out, or delete the user in the Supabase Auth dashboard.",
+                        });
+                      }}
+                    >
                       <Trash2 className="h-3.5 w-3.5 mr-2" />
-                      Delete Account
+                      {isGuest ? "Clear Guest Data" : "Delete Account"}
                     </Button>
                   </div>
                 </motion.div>
               )}
 
-              {/* Billing - Resource Credits */}
+              {/* Billing - credits + Stripe (Lovable-style) */}
               {currentTab === "billing" && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                   <div className="rounded-[32px] border border-white/5 bg-gradient-to-br from-[#0A0A0B] to-[#050505] p-10 backdrop-blur-3xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] group-hover:bg-primary/10 transition-colors" />
-                    <div className="flex items-start justify-between mb-12">
+                    <div className="flex items-start justify-between mb-8">
                       <div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 mb-2 block">Pro Tier</span>
-                        <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Unlimited Plan</h2>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 mb-2 block">
+                          {byok ? "BYOK" : planLabel}
+                        </span>
+                        <h2 className="text-4xl font-black text-white tracking-tighter uppercase">
+                          {byok ? "Your keys" : isPro ? "Pro Plan" : "Free Plan"}
+                        </h2>
+                        <p className="text-sm text-muted-foreground/50 mt-3 max-w-md">
+                          {byok
+                            ? "Platform credits are not used while a personal API key is active."
+                            : isPro
+                              ? `${PRO_MONTHLY_CREDITS} credits refresh each Stripe billing cycle.`
+                              : `${FREE_WELCOME_CREDITS} platform prompts on our key, then upgrade or add BYOK.`}
+                        </p>
                       </div>
                       <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
                         <Logo />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mb-8">
-                      {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-1.5 w-12 rounded-full bg-primary shadow-[0_0_10px_rgba(34,197,94,0.4)]" />)}
-                      <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest ml-4">Fully Active</span>
+
+                    <div className="mb-8">
+                      <div className="flex items-end justify-between mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                          {byok ? "Unlimited" : "Credits remaining"}
+                        </span>
+                        <span className="text-2xl font-black tabular-nums">
+                          {billingLoading ? "…" : byok ? "∞" : remaining}
+                        </span>
+                      </div>
+                      {!byok && (
+                        <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all"
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                ((profile?.credits_balance ?? 0) /
+                                  (isPro ? PRO_MONTHLY_CREDITS : FREE_WELCOME_CREDITS)) *
+                                  100
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
-                    <Button variant="hero-outline" className="rounded-xl px-8 h-12 border-white/10 bg-white/5 hover:bg-white text-[11px] font-bold uppercase tracking-widest text-white hover:text-black hover:shadow-2xl hover:shadow-white/10 transition-all">
-                      Modify Plan
-                      <ChevronRight className="w-3.5 h-3.5 ml-2" />
-                    </Button>
+
+                    <div className="flex flex-wrap gap-3">
+                      {!isPro && !byok && (
+                        <Button
+                          variant="hero"
+                          className="rounded-xl px-8 h-12 text-[11px] font-bold uppercase tracking-widest"
+                          disabled={isProcessing}
+                          onClick={() => startCheckout("Pro", PRO_PRICE_LABEL)}
+                        >
+                          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : `Upgrade · ${PRO_PRICE_LABEL}/mo`}
+                        </Button>
+                      )}
+                      {(isPro || profile?.stripe_customer_id) && (
+                        <Button
+                          variant="hero-outline"
+                          className="rounded-xl px-8 h-12 border-white/10 bg-white/5 text-[11px] font-bold uppercase tracking-widest"
+                          disabled={isProcessing}
+                          onClick={() => openPortal()}
+                        >
+                          Manage in Stripe
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        className="rounded-xl border-white/10 h-12 text-[11px] font-bold uppercase tracking-widest"
+                        asChild
+                      >
+                        <Link to="/pricing">View plans</Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="rounded-xl h-12 text-[11px] uppercase tracking-widest text-white/40"
+                        onClick={() => refreshBilling()}
+                      >
+                        Refresh
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="rounded-[32px] border border-white/5 bg-[#0A0A0B]/50 p-8 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="rounded-[32px] border border-white/5 bg-[#0A0A0B]/50 p-8">
+                    <div className="flex items-center gap-4 mb-3">
                       <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
-                        <Globe className="w-5 h-5 text-muted-foreground/30" />
+                        <Key className="w-5 h-5 text-muted-foreground/30" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white uppercase tracking-tight">External Billing</h3>
-                        <p className="text-xs text-muted-foreground/40 mt-1">Managed via Stripe for security.</p>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-tight">Prefer BYOK?</h3>
+                        <p className="text-xs text-muted-foreground/40 mt-1">
+                          Add a Gemini / OpenAI / Claude key — unlimited local usage, no credit burn.
+                        </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:text-white hover:bg-white/5">
-                      <ExternalLink className="w-4 h-4" />
+                    <Button variant="outline" className="rounded-xl border-white/10" asChild>
+                      <Link to="/app/settings/keys">API keys</Link>
                     </Button>
                   </div>
                 </motion.div>
@@ -320,7 +466,12 @@ const Settings = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                            <ApiKeyTestButton
+                              variant="compact"
+                              provider={providerIdFromLabel(k.provider)}
+                              apiKey={k.value}
+                            />
                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10" onClick={() => toggleVisibility(k.id)}>
                               {showKey[k.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
@@ -409,6 +560,7 @@ const Settings = () => {
                   <SelectItem value="gemini">Google Gemini</SelectItem>
                   <SelectItem value="claude">Anthropic Claude</SelectItem>
                   <SelectItem value="grok">xAI Grok</SelectItem>
+                  <SelectItem value="deepseek">DeepSeek</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -431,6 +583,10 @@ const Settings = () => {
                 value={newKeyData.value}
                 onChange={(e) => setNewKeyData(prev => ({ ...prev, value: e.target.value }))}
                 className="bg-white/5 border-white/10 rounded-2xl h-12 focus:ring-primary/20 text-[12px]"
+              />
+              <ApiKeyTestButton
+                provider={newKeyData.provider}
+                apiKey={newKeyData.value}
               />
             </div>
           </div>

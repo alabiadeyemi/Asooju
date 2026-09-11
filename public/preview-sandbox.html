@@ -1,350 +1,486 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ShipKernel Preview</title>
+  <!-- Locally vendored runtimes (no CDN fragility) -->
+  <script src="/vendor/react.production.min.js"></script>
+  <script src="/vendor/react-dom.production.min.js"></script>
+  <script src="/vendor/remix-router.umd.min.js"></script>
+  <script src="/vendor/react-router.production.min.js"></script>
+  <script src="/vendor/react-router-dom.production.min.js"></script>
+  <script src="/vendor/babel.min.js"></script>
+  <script src="/vendor/supabase.js"></script>
+  <script src="/vendor/framer-motion.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Use core Lucide (data only, no React dependency) to prevent crashing -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
-  <script src="https://unpkg.com/react-router-dom@6.11.2/dist/umd/react-router-dom.production.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Icons optional; LucideReact stubs if CDN blocked -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js" onerror="console.warn('lucide CDN skipped')"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style id="vfs-user-styles"></style>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #fff;
-    }
-
-    #root {
-      min-height: 100vh;
+    html, body { margin: 0; padding: 0; min-height: 100%; background: #fff; }
+    body { font-family: Inter, system-ui, sans-serif; }
+    #root { min-height: 100vh; }
+    #boot {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; background: #0a0a0b; color: #a3a3a3;
+      font: 12px/1.4 Inter, system-ui, sans-serif; letter-spacing: 0.12em;
+      text-transform: uppercase;
     }
   </style>
 </head>
-
 <body>
-  <div id="root"></div>
+  <div id="root"><div id="boot">Starting preview…</div></div>
   <script>
-    const init = () => {
-      window.React = React;
-      window.ReactDOM = ReactDOM;
-      window.framerMotion = window.Motion; // Expose Framer Motion correctly
-      window.process = { env: { NODE_ENV: 'development' } };
+    let vfs = {};
+    let lastEntry = "App.tsx";
+    let renderToken = 0;
+    let lastGoodHtml = null;
 
-      // Define the Universal Icon Component
-      // AI will use <Icon name="Activity" className="..." />
-      window.Icon = ({ name, size = 20, strokeWidth = 2, className = '', ...props }) => {
+    function getRouterLib() {
+      const raw = window.ReactRouterDOM || window.ReactRouter || {};
+      // MemoryRouter is reliable inside iframes; HashRouter often crashes with parent history
+      const Memory = raw.MemoryRouter || raw.HashRouter || raw.BrowserRouter;
+      const Browser = raw.BrowserRouter || Memory;
+      const Hash = Memory || raw.HashRouter;
+      return new Proxy(raw, {
+        get(target, prop) {
+          if (prop === "HashRouter") return Hash;
+          if (prop === "BrowserRouter") return Browser;
+          if (prop === "MemoryRouter") return Memory || target[prop];
+          const v = target[prop];
+          return v;
+        },
+      });
+    }
+
+    function buildIconComponent() {
+      return function Icon({ name, size = 20, strokeWidth = 2, className = "", ...props }) {
         try {
           const lib = window.lucide;
           if (!lib || !lib.icons) return null;
-
-          const iconData = lib.icons[name] || lib.icons['HelpCircle'] || lib.icons['Box'];
+          const iconData = lib.icons[name] || lib.icons.HelpCircle || lib.icons.Box;
           if (!iconData) return null;
-
           return React.createElement(
-            'svg',
+            "svg",
             {
-              xmlns: 'http://www.w3.org/2000/svg',
+              xmlns: "http://www.w3.org/2000/svg",
               width: size,
               height: size,
-              viewBox: '0 0 24 24',
-              fill: 'none',
-              stroke: 'currentColor',
-              strokeWidth: strokeWidth,
-              strokeLinecap: 'round',
-              strokeLinejoin: 'round',
-              className: `lucide lucide-${(name || 'box').toLowerCase()} ${className}`,
-              ...props
+              viewBox: "0 0 24 24",
+              fill: "none",
+              stroke: "currentColor",
+              strokeWidth,
+              strokeLinecap: "round",
+              strokeLinejoin: "round",
+              className: "lucide lucide-" + String(name || "box").toLowerCase() + " " + className,
+              ...props,
             },
-            iconData[2].map(([childTag, childAttrs]) =>
-              React.createElement(childTag, childAttrs)
-            )
+            (iconData[2] || []).map(([tag, attrs]) => React.createElement(tag, attrs))
           );
-        } catch (err) {
+        } catch {
           return null;
         }
       };
+    }
 
-      // Map all React properties to the global window object for convenience
-      Object.keys(React).forEach(key => {
-        if (typeof React[key] === 'function' || typeof React[key] === 'object') {
-          window[key] = React[key];
+    function ensureDeps() {
+      if (!window.React || !window.ReactDOM) {
+        throw new Error("React failed to load. Check network / CDN.");
+      }
+      window.process = window.process || { env: { NODE_ENV: "production" } };
+      window.framerMotion = window.Motion || window.framerMotion || window.framerMotion;
+      // framer-motion UMD global varies by version
+      if (!window.framerMotion && window.Motion) window.framerMotion = window.Motion;
+
+      window.Icon = buildIconComponent();
+      window.LucideReact = new Proxy(
+        {},
+        {
+          get(_t, name) {
+            if (typeof name !== "string") return undefined;
+            return (props) => React.createElement(window.Icon, { name, ...props });
+          },
         }
-      });
+      );
 
-      // Unified Lucide Support: Create a proxy to handle 'import { ... } from "lucide-react"'
-      // which the parent transpiler maps to the 'LucideReact' global.
-      window.LucideReact = new Proxy({}, {
-        get: (target, name) => {
-          if (typeof name !== 'string') return target[name];
-          return (props) => React.createElement(window.Icon, { name, ...props });
-        }
-      });
-
-      // Special handling for AbortError to prevent spamming the console 
-      // during rapid HMR/remounts
-      const originalError = console.error;
-      console.error = (...args) => {
-        // Flatten arguments to search for AbortErrors
-        const argStrings = args.map(a => (typeof a === 'string' ? a : (a?.message || a?.stack || JSON.stringify(a))));
-        const isAbort = argStrings.some(s => s && (s.includes('AbortError') || s.includes('signal is aborted')));
-
-        if (isAbort) return;
-
-        // Try to find an actual error object or message in the arguments
-        const errorDetail = args.find(a => a instanceof Error) || args.find(a => typeof a === 'string' && a.length > 5) || args[0];
-
-        window.parent.postMessage({
-          type: 'RUNTIME_ERROR',
-          error: errorDetail?.message || (typeof errorDetail === 'string' ? errorDetail : 'Unknown Runtime Error'),
-          stack: errorDetail?.stack || argStrings.join(' ')
-        }, '*');
-
-        originalError.apply(console, args);
-      };
-
-      // Standardize the Supabase Client
-      if (window.supabase) {
-        // Only set the library reference if it has createClient
-        if (window.supabase.createClient) {
-          window._supabase_lib = window.supabase;
-        }
-
-        // If we have credentials, ensure a ready instance exists
-        if (window._SUPABASE_URL && window._SUPABASE_KEY && (!window.supabase || !window.supabase.from)) {
-          try {
-            const client = window._supabase_lib.createClient(window._SUPABASE_URL, window._SUPABASE_KEY);
-            window.supabase = client;
-            window.Supabase = client;
-            window.supabaseClient = client;
-            window.createClient = window._supabase_lib.createClient;
-          } catch (e) { }
-        }
+      const rr = getRouterLib();
+      window.__ShipKernelRouter = rr;
+      if (!rr.MemoryRouter && !rr.HashRouter) {
+        console.warn("[Preview] react-router-dom UMD missing router components");
       }
 
-      console.log("[Sandbox] Universal Icon System Online");
+      if (window.supabase?.createClient) {
+        window._supabase_lib = window.supabase;
+      }
+    }
 
-      // Standalone sync: Load from localStorage if opened in new tab or refreshed
-      const syncFromStorage = () => {
+    function ensureSupabase() {
+      if (window._SUPABASE_URL && window._SUPABASE_KEY && window._supabase_lib?.createClient) {
         try {
-          const stored = localStorage.getItem('shipkernel_preview_data');
-          if (stored) {
-            const { code, componentName, path, supabaseUrl, supabaseKey } = JSON.parse(stored);
-            if (supabaseUrl) window._SUPABASE_URL = supabaseUrl;
-            if (supabaseKey) window._SUPABASE_KEY = supabaseKey;
-            currentPath = path || '/';
-            lastCode = code;
-            lastComponentName = componentName;
-            renderApp(code, componentName);
+          const client = window._supabase_lib.createClient(window._SUPABASE_URL, window._SUPABASE_KEY);
+          window.supabase = client;
+          window.Supabase = client;
+          window.supabaseClient = client;
+        } catch (_) {}
+      }
+    }
+
+    function injectCss() {
+      const styleEl = document.getElementById("vfs-user-styles");
+      if (!styleEl) return;
+      styleEl.textContent = Object.entries(vfs)
+        .filter(([path]) => path.endsWith(".css"))
+        .map(([, content]) => content)
+        .join("\n");
+    }
+
+    function post(type, payload) {
+      try {
+        window.parent.postMessage({ type, ...payload }, "*");
+      } catch (_) {}
+    }
+
+    function ErrorBoundaryFactory() {
+      return class PreviewErrorBoundary extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { error: null };
+        }
+        static getDerivedStateFromError(error) {
+          return { error };
+        }
+        componentDidCatch(error, info) {
+          const message = String(error?.message || error);
+          const stack = [error?.stack, info?.componentStack].filter(Boolean).join("\n");
+          post("RUNTIME_ERROR", { error: message, stack });
+          post("PREVIEW_STATUS", { status: "error", message });
+        }
+        render() {
+          if (this.state.error) {
+            const msg = String(this.state.error?.message || this.state.error);
+            return React.createElement(
+              "div",
+              {
+                style: {
+                  boxSizing: "border-box",
+                  padding: "1.25rem",
+                  minHeight: "100vh",
+                  background: "#0a0a0b",
+                  color: "#f87171",
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                },
+              },
+              React.createElement(
+                "h2",
+                { style: { margin: "0 0 0.75rem", color: "#fff", fontSize: "0.95rem" } },
+                "Preview crashed"
+              ),
+              React.createElement(
+                "div",
+                {
+                  style: {
+                    border: "1px solid #7f1d1d",
+                    borderRadius: 8,
+                    padding: "0.875rem",
+                    background: "#111",
+                    color: "#fecaca",
+                    fontSize: 13,
+                    lineHeight: 1.45,
+                    wordBreak: "break-word",
+                  },
+                },
+                msg
+              ),
+              React.createElement(
+                "p",
+                { style: { marginTop: 12, color: "#737373", fontSize: 11 } },
+                "Ask the agent to fix this error, or simplify routing (avoid nested routers)."
+              )
+            );
           }
-        } catch (e) {
-          console.error("[Sandbox] Sync Error:", e);
+          return this.props.children;
         }
       };
+    }
 
-      if (window === window.top) {
-        syncFromStorage();
-        window.addEventListener('storage', (e) => {
-          if (e.key === 'shipkernel_preview_data') syncFromStorage();
-        });
-      }
-
-      window.parent.postMessage({ type: 'PREVIEW_READY' }, '*');
-    };
-
-    let currentPath = '/';
-    let lastCode = null;
-    let lastComponentName = null;
-    let vfs = {}; // Virtual Filesystem
-
-    window.addEventListener('message', (event) => {
-      if (event.data.type === 'SET_PATH') {
-        currentPath = event.data.path;
-        window.locationPath = currentPath;
-        if (lastCode) renderApp(lastCode, lastComponentName);
-      }
-
-      if (event.data.type === 'EXECUTE_CODE') {
-        const { code, componentName, supabaseUrl, supabaseKey, files, entryPoint: msgEntryPoint } = event.data;
-        if (supabaseUrl) window._SUPABASE_URL = supabaseUrl;
-        if (supabaseKey) window._SUPABASE_KEY = supabaseKey;
-
-        if (files) {
-          vfs = files;
-          // Priority: 1. Passed entryPoint 2. App.tsx 3. First available file
-          const entryPoint = msgEntryPoint || (files['App.tsx'] ? 'App.tsx' : Object.keys(files)[0]);
-          renderVFS(entryPoint);
-        } else {
-          lastCode = code;
-          lastComponentName = componentName;
-          renderApp(code, componentName);
-        }
-      }
-    });
-
-    const renderVFS = (entryFile) => {
-      const rootEl = document.getElementById('root');
-      const moduleCache = {};
-
-      const resolvePath = (path, currentFile) => {
-        if (!path.startsWith('.')) return path;
-
-        const parts = currentFile.split('/');
-        parts.pop();
-        const pathParts = path.split('/');
-        for (const part of pathParts) {
-          if (part === '..') parts.pop();
-          else if (part !== '.') parts.push(part);
-        }
-        let resolved = parts.join('/');
-
-        // Extension resolving
-        const extensions = ['', '.tsx', '.ts', '.js', '/index.tsx', '/index.ts', '/index.js'];
+    function resolvePath(path, currentFile) {
+      if (path.startsWith("@/")) path = path.slice(2);
+      if (!path.startsWith(".")) {
+        const extensions = ["", ".tsx", ".ts", ".js", ".jsx", "/index.tsx", "/index.ts", "/index.js"];
         for (const ext of extensions) {
-          if (vfs[resolved + ext]) return resolved + ext;
+          if (vfs[path + ext]) return path + ext;
         }
-        return resolved;
-      };
+        return path;
+      }
+      const parts = currentFile.split("/");
+      parts.pop();
+      for (const part of path.split("/")) {
+        if (part === "..") parts.pop();
+        else if (part !== ".") parts.push(part);
+      }
+      let resolved = parts.join("/");
+      const extensions = ["", ".tsx", ".ts", ".js", ".jsx", "/index.tsx", "/index.ts", "/index.js"];
+      for (const ext of extensions) {
+        if (vfs[resolved + ext]) return resolved + ext;
+      }
+      return resolved;
+    }
 
-      const require = (path, currentFile) => {
-        // External Libraries
-        if (path === 'react') return window.React;
-        if (path === 'react-dom') return window.ReactDOM;
-        if (path === 'lucide-react') return window.LucideReact;
-        if (path === 'framer-motion') return window.framerMotion;
-        if (path === 'react-router-dom') return window.ReactRouterDOM || window.ReactRouter;
-        if (path === '@supabase/supabase-js') return window._supabase_lib;
-
-        // UI / Utility Mocks
-        if (path === 'sonner') {
+    function createRequire(moduleCache) {
+      return function require(path, currentFile) {
+        if (path === "react") return window.React;
+        if (path === "react/jsx-runtime" || path === "react/jsx-dev-runtime") {
           return {
-            toast: Object.assign((m) => console.log(`[Toast] ${m}`), {
-              success: (m) => console.log(`[Toast Success] ${m}`),
-              error: (m) => console.log(`[Toast Error] ${m}`),
-              loading: (m) => console.log(`[Toast Loading] ${m}`),
-            })
+            jsx: React.createElement,
+            jsxs: React.createElement,
+            Fragment: React.Fragment,
           };
         }
-
-        // Internal Bridge Mappings
-        if (path === '@/lib/supabase' || path === '@/integrations/supabase/client') {
+        if (path === "react-dom" || path === "react-dom/client") return window.ReactDOM;
+        if (path === "lucide-react") return window.LucideReact;
+        if (path === "framer-motion") return window.framerMotion || window.Motion || {};
+        if (path === "react-router-dom") return window.__ShipKernelRouter || getRouterLib();
+        if (path === "react-router") return window.__ShipKernelRouter || getRouterLib();
+        if (path === "@supabase/supabase-js") return window._supabase_lib;
+        if (path === "sonner") {
+          const toast = Object.assign((m) => console.log("[Toast]", m), {
+            success: (m) => console.log("[Toast Success]", m),
+            error: (m) => console.log("[Toast Error]", m),
+            loading: (m) => console.log("[Toast Loading]", m),
+          });
+          return { toast, Toaster: () => null };
+        }
+        if (
+          path === "@/lib/supabase" ||
+          path === "@/integrations/supabase/client" ||
+          path === "./lib/supabase" ||
+          path === "../lib/supabase"
+        ) {
           return { supabase: window.supabase, default: window.supabase };
+        }
+        if (path.endsWith(".css") || resolvePath(path, currentFile).endsWith(".css")) {
+          return {};
         }
 
         const resolved = resolvePath(path, currentFile);
         if (moduleCache[resolved]) return moduleCache[resolved].exports;
 
         const fileContent = vfs[resolved];
-        if (!fileContent) throw new Error(`Architecture Violation: Module not found: ${path} (resolved as ${resolved})`);
+        if (!fileContent) {
+          throw new Error(`Module not found: ${path} (from ${currentFile} → ${resolved})`);
+        }
 
-        // Babel Mock Plugin for import.meta.env
         const metaPlugin = ({ types: t }) => ({
           visitor: {
-            MetaProperty(path) {
-              if (path.node.meta.name === 'import' && path.node.property.name === 'meta') {
-                path.replaceWith(t.identifier('window._import_meta_mock'));
+            MetaProperty(p) {
+              if (p.node.meta.name === "import" && p.node.property.name === "meta") {
+                p.replaceWith(t.identifier("window._import_meta_mock"));
               }
-            }
-          }
+            },
+          },
         });
 
-        const babelOptions = {
-          presets: ['react', 'typescript', ['env', { modules: 'commonjs' }]],
-          plugins: [metaPlugin],
-          filename: resolved
-        };
+        let transformed;
+        try {
+          transformed = Babel.transform(fileContent, {
+            presets: [
+              ["react", { runtime: "classic" }],
+              "typescript",
+              ["env", { modules: "commonjs", targets: { browsers: "last 2 chrome versions" } }],
+            ],
+            plugins: [metaPlugin],
+            filename: resolved,
+          }).code;
+        } catch (babelErr) {
+          throw new Error(`Compile error in ${resolved}: ${babelErr.message || babelErr}`);
+        }
 
-        const transformed = Babel.transform(fileContent, babelOptions).code;
         const module = { exports: {} };
         moduleCache[resolved] = module;
-
-        const wrapper = new Function('require', 'exports', 'module', '__filename', transformed);
-        wrapper((p) => require(p, resolved), module.exports, module, resolved);
-
+        try {
+          const wrapper = new Function(
+            "require",
+            "exports",
+            "module",
+            "__filename",
+            "React",
+            transformed
+          );
+          wrapper(
+            (p) => require(p, resolved),
+            module.exports,
+            module,
+            resolved,
+            window.React
+          );
+        } catch (runtimeErr) {
+          delete moduleCache[resolved];
+          throw runtimeErr;
+        }
         return module.exports;
       };
+    }
 
-      try {
-        const entryModule = require(`./${entryFile}`, 'index.js');
-        const Component = entryModule.default || entryModule.App || entryModule;
-
-        if (!Component || (typeof Component !== 'function' && typeof Component !== 'object')) {
-          throw new Error(`Entry point "${entryFile}" did not export a valid React component.`);
-        }
-
-        if (!window.reactRoot) {
-          window.reactRoot = ReactDOM.createRoot(rootEl);
-        }
-        window.reactRoot.render(React.createElement(Component));
-      } catch (err) {
-        showError(err);
-      }
-    };
-
-    const showError = (err) => {
-      const rootEl = document.getElementById('root');
-      console.error("Runtime Error:", err);
+    function showError(err) {
+      const rootEl = document.getElementById("root");
       if (window.reactRoot) {
-        try { window.reactRoot.unmount(); window.reactRoot = null; } catch (e) { }
+        try {
+          window.reactRoot.unmount();
+          window.reactRoot = null;
+        } catch (_) {}
       }
-      rootEl.innerHTML = `
-        <div style="padding: 2rem; color: #ef4444; font-family: monospace; background: #000; min-height: 100vh;">
-          <h2 style="margin-bottom: 1rem;">Architecture Violation</h2>
-          <div style="border: 1px solid #ef4444; padding: 1rem; border-radius: 8px;">
-            <strong>${err.name}:</strong> ${err.message}
-            <pre style="margin-top: 1rem; opacity: 0.6; font-size: 0.8rem;">${err.stack}</pre>
-          </div>
-        </div>`;
-    };
+      const msg = String(err && (err.message || err)).replace(/</g, "&lt;");
+      const stack = String((err && err.stack) || "").replace(/</g, "&lt;");
+      rootEl.innerHTML =
+        '<div style="box-sizing:border-box;padding:1.25rem;color:#f87171;font-family:ui-monospace,Menlo,monospace;background:#0a0a0b;min-height:100vh;overflow:auto;">' +
+        '<h2 style="margin:0 0 0.75rem;color:#fff;font-size:1rem;">Preview Error</h2>' +
+        '<div style="border:1px solid #7f1d1d;padding:0.875rem;border-radius:8px;background:#111;overflow:hidden;">' +
+        '<div style="word-break:break-word;font-size:0.8125rem;line-height:1.45;color:#fecaca;"><strong>Error:</strong> ' +
+        msg +
+        "</div>" +
+        (stack
+          ? '<pre style="margin:0.75rem 0 0;opacity:0.55;font-size:0.7rem;white-space:pre-wrap;word-break:break-word;max-height:40vh;overflow:auto;">' +
+            stack +
+            "</pre>"
+          : "") +
+        "</div></div>";
+      post("RUNTIME_ERROR", { error: String(err && (err.message || err)), stack: String(err && err.stack || "") });
+      post("PREVIEW_STATUS", { status: "error", message: String(err && (err.message || err)) });
+    }
 
-    const renderApp = (code, componentName) => {
-      const rootEl = document.getElementById('root');
+    function renderVFS(entryFile, opts) {
+      const soft = opts && opts.soft;
+      const token = ++renderToken;
+      const rootEl = document.getElementById("root");
+      const moduleCache = {};
+      injectCss();
+
+      window._import_meta_mock = {
+        env: {
+          VITE_SUPABASE_URL: window._SUPABASE_URL || "",
+          VITE_SUPABASE_PUBLISHABLE_KEY: window._SUPABASE_KEY || "",
+        },
+      };
+
+      const require = createRequire(moduleCache);
+
       try {
-        const babelOptions = {
-          presets: ['react'],
-          plugins: [
-            ({ types: t }) => ({
-              visitor: {
-                MetaProperty(path) {
-                  if (path.node.meta.name === 'import' && path.node.property.name === 'meta') {
-                    path.replaceWith(t.identifier('window._import_meta_mock'));
-                  }
-                }
-              }
-            })
-          ]
-        };
+        if (!entryFile || !vfs[entryFile]) {
+          const keys = Object.keys(vfs);
+          entryFile = keys.find((k) => /App\.(tsx|jsx|js)$/i.test(k)) || keys[0];
+        }
+        if (!entryFile) throw new Error("No files in workspace yet.");
 
-        window._import_meta_mock = {
-          env: {
-            VITE_SUPABASE_URL: window._SUPABASE_URL || "",
-            VITE_SUPABASE_PUBLISHABLE_KEY: window._SUPABASE_KEY || ""
-          }
-        };
+        const entryModule = require("./" + entryFile, "index.js");
+        let Component = entryModule.default || entryModule.App || entryModule;
+        if (Component && typeof Component === "object" && Component.__esModule && Component.default) {
+          Component = Component.default;
+        }
+        if (!Component || (typeof Component !== "function" && typeof Component !== "object")) {
+          throw new Error('Entry "' + entryFile + '" did not export a React component.');
+        }
 
-        const transformed = Babel.transform(code, babelOptions).code;
-        const wrappedCode = `(function() { 
-          ${transformed} 
-          return window["${componentName}"] || (typeof ${componentName} !== "undefined" ? ${componentName} : null);
-        })()`;
+        if (token !== renderToken) return;
 
-        const Component = eval(wrappedCode);
-        if (!Component) throw new Error(`Component ${componentName} not found.`);
-
-        if (!window.reactRoot) window.reactRoot = ReactDOM.createRoot(rootEl);
-        window.reactRoot.render(React.createElement(Component));
+        if (window.reactRoot) {
+          try {
+            window.reactRoot.unmount();
+          } catch (_) {}
+          window.reactRoot = null;
+        }
+        // clear boot markup so createRoot mounts cleanly
+        rootEl.innerHTML = "";
+        const Boundary = ErrorBoundaryFactory();
+        window.reactRoot = ReactDOM.createRoot(rootEl);
+        window.reactRoot.render(
+          React.createElement(Boundary, null, React.createElement(Component))
+        );
+        lastEntry = entryFile;
+        post("PREVIEW_STATUS", {
+          status: "live",
+          entry: entryFile,
+          files: Object.keys(vfs).length,
+        });
+        post("PREVIEW_RENDERED", { entry: entryFile });
       } catch (err) {
+        if (soft) {
+          // Keep previous good frame during mid-build incomplete graphs
+          post("PREVIEW_STATUS", {
+            status: "building",
+            message: String(err && (err.message || err)).slice(0, 180),
+          });
+          return;
+        }
         showError(err);
       }
-    };
+    }
 
-    if (document.readyState === 'complete') init();
-    else window.addEventListener('load', init);
+    function applyPayload(data) {
+      if (!data) return;
+      if (data.supabaseUrl) window._SUPABASE_URL = data.supabaseUrl;
+      if (data.supabaseKey) window._SUPABASE_KEY = data.supabaseKey;
+      ensureSupabase();
+      if (!data.files || typeof data.files !== "object") {
+        showError(new Error("Preview expects a multifile VFS payload."));
+        return;
+      }
+      vfs = data.files;
+      lastEntry =
+        data.entryPoint ||
+        (data.files["App.tsx"] ? "App.tsx" : Object.keys(data.files)[0]);
+      renderVFS(lastEntry, { soft: !!data.soft });
+    }
+
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type === "EXECUTE_CODE") {
+        applyPayload(data);
+      } else if (data.type === "PREVIEW_PING") {
+        post("PREVIEW_READY", {});
+      }
+    });
+
+    function init() {
+      try {
+        ensureDeps();
+      } catch (e) {
+        showError(e);
+        post("PREVIEW_READY", {});
+        return;
+      }
+
+      try {
+        const stored = localStorage.getItem("shipkernel_preview_data");
+        if (stored) {
+          const data = JSON.parse(stored);
+          if (data.files && Object.keys(data.files).length) {
+            applyPayload({
+              files: data.files,
+              supabaseUrl: data.supabaseUrl,
+              supabaseKey: data.supabaseKey,
+              soft: false,
+            });
+          } else {
+            document.getElementById("root").innerHTML =
+              '<div id="boot">Waiting for workspace…</div>';
+          }
+        } else {
+          document.getElementById("root").innerHTML =
+            '<div id="boot">Waiting for workspace…</div>';
+        }
+      } catch (_) {
+        document.getElementById("root").innerHTML =
+          '<div id="boot">Waiting for workspace…</div>';
+      }
+
+      post("PREVIEW_READY", {});
+    }
+
+    if (document.readyState === "complete") init();
+    else window.addEventListener("load", init);
   </script>
 </body>
-
 </html>

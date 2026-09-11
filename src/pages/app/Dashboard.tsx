@@ -26,7 +26,7 @@ interface ProjectData {
 const Dashboard = () => {
   const [projectsList, setProjectsList] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
 
   const activityFeed = [
     {
@@ -39,24 +39,27 @@ const Dashboard = () => {
       color: "text-green-500"
     },
     { type: "System", message: "AI Engine warmed up and ready for blueprints", time: "1h ago", icon: BrainCircuit, color: "text-primary" },
-    { type: "Security", message: "Environment variables encrypted in session", time: "3d ago", icon: Activity, color: "text-purple-500" },
+    { type: "Security", message: "Session active", time: "3d ago", icon: Activity, color: "text-purple-500" },
   ];
 
   useEffect(() => {
-    if (user) {
-      fetchUserProjects();
-    }
-  }, [user]);
+    if (user) fetchUserProjects();
+    else setIsLoading(false);
+  }, [user, isGuest]);
 
   const fetchUserProjects = async () => {
     try {
       setIsLoading(true);
+      if (isGuest || user?.id === "guest-user-000") {
+        const { readLocalProjects } = await import("@/hooks/use-projects");
+        setProjectsList(readLocalProjects().slice(0, 3) as any);
+        return;
+      }
       const { data, error } = await supabase
         .from("projects")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(3);
-
       if (error) throw error;
       setProjectsList(data || []);
     } catch (error: any) {
@@ -87,10 +90,10 @@ const Dashboard = () => {
   };
 
   const stats = [
-    { label: "Active Blueprints", value: projectsList.length.toString(), sub: "Architecture designs", icon: BrainCircuit, color: "from-blue-500/10 to-transparent" },
-    { label: "Cloud Health", value: projectsList.length > 0 ? "Optimal" : "Idle", sub: "Storage & API Status", icon: ShieldCheck, color: "from-green-500/10 to-transparent" },
-    { label: "Avg Latency", value: projectsList.length > 0 ? "1.2s" : "--", sub: "AI response speed", icon: Activity, color: "from-purple-500/10 to-transparent" },
-    { label: "Vault Size", value: calculateStorage(), sub: "Total code fragments", icon: BarChart3, color: "from-orange-500/10 to-transparent" },
+    { label: "Projects", value: projectsList.length.toString(), sub: isGuest ? "Stored locally" : "In your account", icon: BrainCircuit, color: "from-blue-500/10 to-transparent" },
+    { label: "Storage", value: calculateStorage(), sub: "Approx. code size", icon: BarChart3, color: "from-orange-500/10 to-transparent" },
+    { label: "Mode", value: isGuest ? "Guest" : "Cloud", sub: isGuest ? "Local only" : "Supabase sync", icon: ShieldCheck, color: "from-green-500/10 to-transparent" },
+    { label: "Workspace", value: "VFS", sub: "Multifile preview", icon: Activity, color: "from-purple-500/10 to-transparent" },
   ];
 
   return (
@@ -269,9 +272,11 @@ const Dashboard = () => {
                 ))}
               </div>
 
-              <Button variant="ghost" className="w-full mt-12 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-white group">
-                View All Activity
-                <ArrowUpRight className="w-3 h-3 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <Button variant="ghost" className="w-full mt-12 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-white group" asChild>
+                <Link to="/app/projects">
+                  View All Projects
+                  <ArrowUpRight className="w-3 h-3 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </Link>
               </Button>
             </div>
 
@@ -284,7 +289,9 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">
                 Get faster updates and better security for all your projects.
               </p>
-              <Button className="w-full rounded-xl bg-white text-black font-bold h-11 hover:bg-white/90">Upgrade Now</Button>
+              <Button className="w-full rounded-xl bg-white text-black font-bold h-11 hover:bg-white/90" asChild>
+                <Link to="/pricing">View Pricing</Link>
+              </Button>
             </div>
           </div>
         </div>

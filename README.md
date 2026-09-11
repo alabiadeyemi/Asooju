@@ -32,7 +32,7 @@ A premium UI experience built for the professional developer:
 
 ###  4. Community Marketplace & Templates
 - **Architectural Blueprints**: Browse a curated selection of community layouts.
-- **One-Click Remix**: Instantly fork a template into your own workspace to accelerate development.
+- **One-Click Templates**: Instantly fork a template into your own workspace to accelerate development.
 - **Categorized Discovery**: Filter through E-Commerce, SaaS, Dashboards, and Portfolio categories.
 
 ###  5. Advanced Settings & API Management
@@ -75,28 +75,26 @@ A premium UI experience built for the professional developer:
 
 ---
 
-##  Getting Started for Engineers
+## Getting Started for Engineers
 
-### **Local Environment Setup**
+### Local Environment Setup
 Ensure you have [Node.js](https://nodejs.org/) (v18+) and [npm](https://www.npmjs.com/) installed.
 
 ```bash
-# 1. Clone the architecture
 git clone https://github.com/yuinz/shipkernel.git
 cd shipkernel
-
-# 2. Initialize the foundry
 npm install
+```
 
-# 3. Ignite the development core
+Copy env vars and run the Supabase schema — see [`supabase/SETUP.md`](supabase/SETUP.md).
+
+```bash
 npm run dev
 ```
 
-### **Deployment Workflow**
-1. **Design**: Use the AI Chat or Template Marketplace to define your app.
-2. **Refine**: Use the Project Builder's interactive workspace to tweak components.
-3. **Sync**: Connect GitHub (ensure `repo` permissions are granted) and click **"Push Now"**.
-4. **Launch**: Deploy to Vercel directly from the Export Dashboard.
+**Admin:** not in the sidebar. Open `/admin` only if your email is in `VITE_ADMIN_EMAILS` or your user has `app_metadata.role = "admin"`.
+
+**AI:** add provider keys in Settings (BYOK, stored in the browser). Multifile generation writes to `vfs_files` and previews in the sandbox.
 
 ---
 

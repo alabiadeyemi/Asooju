@@ -51,15 +51,15 @@ class ErrorBoundary extends Component<Props, State> {
                             We encountered an unhandled exception in the project core. Our automated systems have logged the event.
                         </p>
 
-                        <div className="bg-[#0A0A0B] border border-white/5 rounded-3xl p-6 mb-12 text-left overflow-hidden group">
+                        <div className="bg-[#0A0A0B] border border-white/5 rounded-3xl p-6 mb-12 text-left overflow-hidden group max-w-full">
                             <div className="flex items-center gap-2 mb-4">
-                                <Terminal className="w-3.5 h-3.5 text-red-500/50" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Stack Trace</span>
+                                <Terminal className="w-3.5 h-3.5 text-red-500/50 shrink-0" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Error details</span>
                             </div>
-                            <div className="font-mono text-[11px] text-red-400/80 bg-black/40 rounded-xl p-4 overflow-auto max-h-48 custom-scrollbar">
+                            <div className="font-mono text-[11px] text-red-400/80 bg-black/40 rounded-xl p-4 overflow-auto max-h-48 custom-scrollbar break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
                                 {this.state.error?.toString()}
-                                <br />
-                                {this.state.error?.stack?.split('\n').slice(1, 4).join('\n')}
+                                {"\n"}
+                                {this.state.error?.stack?.split("\n").slice(1, 6).join("\n")}
                             </div>
                         </div>
 

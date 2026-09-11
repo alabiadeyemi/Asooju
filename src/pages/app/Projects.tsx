@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  Folder, Search, LayoutGrid, List, Filter,
+  Folder, Search, LayoutGrid, List,
   MoreVertical, ArrowUpRight, Clock, Plus,
   ShieldCheck, Activity, BrainCircuit, Loader2
 } from "lucide-react";
@@ -27,22 +27,25 @@ const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [projectsList, setProjectsList] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchUserProjects();
-    }
-  }, [user]);
+    if (user) fetchUserProjects();
+    else setIsLoading(false);
+  }, [user, isGuest]);
 
   const fetchUserProjects = async () => {
     try {
       setIsLoading(true);
+      if (isGuest || user?.id === "guest-user-000") {
+        const { readLocalProjects } = await import("@/hooks/use-projects");
+        setProjectsList(readLocalProjects() as any);
+        return;
+      }
       const { data, error } = await supabase
         .from("projects")
         .select("*")
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       setProjectsList(data || []);
     } catch (error: any) {
@@ -88,10 +91,6 @@ const Projects = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-[11px] font-bold uppercase tracking-widest px-5 h-10">
-              <Filter className="w-3.5 h-3.5 mr-2" />
-              Sort By
-            </Button>
             <Button variant="hero" asChild className="rounded-xl bg-white text-black hover:bg-white/90 text-[11px] font-bold uppercase tracking-widest px-6 h-10 shadow-xl shadow-white/5">
               <Link to="/app/new">
                 <Plus className="w-4 h-4 mr-2" />

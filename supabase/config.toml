@@ -1,1 +1,3 @@
-project_id = "mbfjljnbkxtvnqwkczhq"
+# ShipKernel — project ref for CLI (optional)
+# Replace with your Supabase project ref after linking:
+project_id = ""

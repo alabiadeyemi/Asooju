@@ -4,9 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Public pages
 import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import FAQ from "./pages/FAQ";
@@ -16,8 +16,9 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
+import VerifyEmail from "./pages/auth/VerifyEmail";
+import Onboarding from "./pages/auth/Onboarding";
 
-// App pages
 import Dashboard from "./pages/app/Dashboard";
 import NewProject from "./pages/app/NewProject";
 import Projects from "./pages/app/Projects";
@@ -38,7 +39,6 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
           <Routes>
-            {/* Public */}
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/faq" element={<FAQ />} />
@@ -48,9 +48,17 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/auth/verify" element={<VerifyEmail />} />
+            <Route path="/auth/onboarding" element={<Onboarding />} />
 
-            {/* App (with sidebar layout) */}
-            <Route path="/app" element={<AppLayout />}>
+            <Route
+              path="/app"
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Dashboard />} />
               <Route path="new" element={<NewProject />} />
               <Route path="projects" element={<Projects />} />
@@ -61,13 +69,26 @@ const App = () => (
               <Route path="settings/providers" element={<Settings />} />
             </Route>
 
-            {/* Export / Deploy */}
-            <Route path="/export/:projectId" element={<AppLayout />}>
+            <Route
+              path="/export/:projectId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<ExportPage />} />
             </Route>
 
-            {/* Admin */}
-            <Route path="/admin" element={<AppLayout />}>
+            {/* Admin: not in sidebar — open /admin only if you're an admin */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Admin />} />
             </Route>
 

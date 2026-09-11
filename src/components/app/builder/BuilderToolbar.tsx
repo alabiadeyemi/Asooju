@@ -1,99 +1,180 @@
-import React from 'react';
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
-    Menu,
-    Save,
-    Share2,
-    Settings,
-    Rocket,
-    RefreshCcw,
-    PanelRightOpen,
-    PanelRightClose
+  Menu,
+  Save,
+  Share2,
+  Settings,
+  Rocket,
+  RefreshCcw,
+  PanelRightOpen,
+  PanelRightClose,
+  Files,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
+import { cn } from "@/lib/utils";
 
 interface BuilderToolbarProps {
-    projectName: string;
-    projectId: string;
-    isMobile: boolean;
-    mobileExplorerOpen: boolean;
-    setMobileExplorerOpen: (open: boolean) => void;
-    handleSave: () => void;
-    handleShare: () => void;
-    handleSettings: () => void;
-    handlePublish: () => void;
-    isPublishing: boolean;
-    rightPanelOpen: boolean;
-    setRightPanelOpen: (open: boolean) => void;
+  projectName: string;
+  projectId: string;
+  isMobile: boolean;
+  mobileExplorerOpen: boolean;
+  setMobileExplorerOpen: (open: boolean) => void;
+  handleSave: () => void;
+  handleShare: () => void;
+  handleSettings: () => void;
+  handlePublish: () => void;
+  isPublishing: boolean;
+  rightPanelOpen: boolean;
+  setRightPanelOpen: (open: boolean) => void;
+  viewMode: "code" | "preview";
+  setViewMode: (mode: "code" | "preview") => void;
+  filesPanelOpen: boolean;
+  setFilesPanelOpen: (open: boolean) => void;
 }
 
 export const BuilderToolbar: React.FC<BuilderToolbarProps> = ({
-    projectName,
-    projectId,
-    isMobile,
-    mobileExplorerOpen,
-    setMobileExplorerOpen,
-    handleSave,
-    handleShare,
-    handleSettings,
-    handlePublish,
-    isPublishing,
-    rightPanelOpen,
-    setRightPanelOpen,
+  projectName,
+  projectId,
+  isMobile,
+  mobileExplorerOpen,
+  setMobileExplorerOpen,
+  handleSave,
+  handleShare,
+  handleSettings,
+  handlePublish,
+  isPublishing,
+  rightPanelOpen,
+  setRightPanelOpen,
+  viewMode,
+  setViewMode,
+  filesPanelOpen,
+  setFilesPanelOpen,
 }) => {
-    return (
-        <header className="h-14 border-b border-white/5 bg-[#0A0A0B] flex items-center justify-between px-4 md:px-6 shrink-0 relative z-50">
-            <div className="flex items-center gap-3 md:gap-6">
-                {isMobile && (
-                    <button onClick={() => setMobileExplorerOpen(!mobileExplorerOpen)} className="p-2 text-muted-foreground hover:text-white">
-                        <Menu className="w-5 h-5" />
-                    </button>
-                )}
-                <div className="flex items-center gap-2 md:gap-3">
-                    <div className="flex items-center gap-2">
-                        <Logo size="sm" />
-                    </div>
-                    <div className="flex flex-col text-left">
-                        <span className="text-[11px] md:text-[12px] font-black uppercase tracking-widest text-white leading-none">{projectName}</span>
-                        <span className="text-[9px] text-white/30 hidden sm:block mt-0.5">main branch • {projectId === 'demo-project' ? 'local only' : 'synced to cloud'}</span>
-                    </div>
-                </div>
-            </div>
+  return (
+    <header className="h-11 border-b border-white/[0.06] bg-[#0a0a0b] flex items-center justify-between px-3 shrink-0 relative z-50">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {isMobile && (
+          <button
+            onClick={() => setMobileExplorerOpen(!mobileExplorerOpen)}
+            className="p-1.5 text-muted-foreground hover:text-white rounded-md hover:bg-white/5"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
+        <Logo size="sm" />
+        <div className="flex flex-col text-left min-w-0">
+          <span className="text-[12px] font-semibold text-white leading-none truncate">
+            {projectName}
+          </span>
+          <span className="text-[9px] text-white/30 hidden sm:block mt-0.5 truncate">
+            {projectId === "demo-project" ? "local" : "cloud"} · main
+          </span>
+        </div>
 
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={handleSave} className="h-8 w-8 text-muted-foreground hover:text-white">
-                    <Save className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 text-muted-foreground hover:text-white">
-                    <Share2 className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={handleSettings} className="h-8 w-8 text-muted-foreground hover:text-white">
-                    <Settings className="w-4 h-4" />
-                </Button>
-                <div className="w-px h-6 bg-white/5 mx-1" />
-                <Button
-                    variant="hero"
-                    size="sm"
-                    onClick={handlePublish}
-                    disabled={isPublishing}
-                    className="rounded-full bg-white text-black hover:bg-white/90 text-[10px] md:text-[11px] font-bold uppercase tracking-widest px-4 md:px-5 h-7 md:h-8 shrink-0"
-                >
-                    {isPublishing ? (
-                        <RefreshCcw className="w-3 h-3 animate-spin mr-2" />
-                    ) : (
-                        <Rocket className="w-3 h-3 mr-1.5 md:mr-2" />
-                    )}
-                    {isPublishing ? "Syncing..." : "Publish"}
-                </Button>
-                {!isMobile && (
-                    <>
-                        <div className="w-px h-6 bg-white/5 mx-1" />
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setRightPanelOpen(!rightPanelOpen)}>
-                            {rightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
-                        </Button>
-                    </>
+        {!isMobile && (
+          <>
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <div className="flex items-center rounded-md border border-white/[0.08] p-0.5 bg-black/30">
+              <button
+                onClick={() => setViewMode("preview")}
+                className={cn(
+                  "px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors",
+                  viewMode === "preview"
+                    ? "bg-white/10 text-white"
+                    : "text-white/35 hover:text-white/60"
                 )}
+              >
+                Preview
+              </button>
+              <button
+                onClick={() => setViewMode("code")}
+                className={cn(
+                  "px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors",
+                  viewMode === "code"
+                    ? "bg-white/10 text-white"
+                    : "text-white/35 hover:text-white/60"
+                )}
+              >
+                Code
+              </button>
             </div>
-        </header>
-    );
+            {viewMode === "code" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilesPanelOpen(!filesPanelOpen)}
+                className={cn(
+                  "h-7 gap-1.5 px-2 text-[10px] uppercase tracking-wider",
+                  filesPanelOpen ? "text-white/70" : "text-white/35"
+                )}
+              >
+                <Files className="w-3.5 h-3.5" />
+                Files
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="flex items-center gap-0.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleSave}
+          className="h-7 w-7 text-muted-foreground hover:text-white"
+          title="Save"
+        >
+          <Save className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleShare}
+          className="h-7 w-7 text-muted-foreground hover:text-white"
+          title="Share"
+        >
+          <Share2 className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleSettings}
+          className="h-7 w-7 text-muted-foreground hover:text-white"
+          title="Settings"
+        >
+          <Settings className="w-3.5 h-3.5" />
+        </Button>
+        <div className="w-px h-4 bg-white/10 mx-1" />
+        <Button
+          size="sm"
+          onClick={handlePublish}
+          disabled={isPublishing}
+          className="rounded-md bg-white text-black hover:bg-white/90 text-[10px] font-semibold uppercase tracking-wider px-3 h-7"
+        >
+          {isPublishing ? (
+            <RefreshCcw className="w-3 h-3 animate-spin mr-1.5" />
+          ) : (
+            <Rocket className="w-3 h-3 mr-1.5" />
+          )}
+          {isPublishing ? "…" : "Publish"}
+        </Button>
+        {!isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground ml-0.5"
+            onClick={() => setRightPanelOpen(!rightPanelOpen)}
+            title={rightPanelOpen ? "Hide agent" : "Show agent"}
+          >
+            {rightPanelOpen ? (
+              <PanelRightClose className="w-3.5 h-3.5" />
+            ) : (
+              <PanelRightOpen className="w-3.5 h-3.5" />
+            )}
+          </Button>
+        )}
+      </div>
+    </header>
+  );
 };
