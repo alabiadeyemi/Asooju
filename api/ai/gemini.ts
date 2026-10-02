@@ -1,90 +1,89 @@
 import {
+  BodyTooLargeError,
   handleOptions,
+  newGenerationId,
   readJsonBody,
   sendJson,
   userFromBearer,
 } from "../_lib/http";
+import { spendPlatformCredit, refundPlatformCredit } from "../_lib/credits";
+import {
+  assertGenerationRateLimit,
+  beginGeneration,
+  endGeneration,
+  RateLimitError,
+} from "../_lib/rate-limit";
+import { GeminiPlatformRequestSchema, zodErrorMessage } from "../_lib/schemas";
 
 /**
  * Platform Gemini (server-held key). Auth required.
- * Atomically consumes 1 credit, then calls Gemini. Refunds on upstream failure.
+ * Atomically consumes 1 credit (idempotent), then calls Gemini. Refunds on upstream failure.
  */
 export default async function handler(req: any, res: any) {
   if (handleOptions(req, res)) return;
-  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" });
+  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" }, req);
 
   const platformKey =
     process.env.PLATFORM_GEMINI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.VITE_GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY;
 
   if (!platformKey) {
-    return sendJson(res, 503, {
-      error: "Platform AI is not configured (set PLATFORM_GEMINI_API_KEY).",
-    });
+    return sendJson(
+      res,
+      503,
+      { error: "Platform AI is not configured (set PLATFORM_GEMINI_API_KEY)." },
+      req
+    );
   }
 
   let consumed = false;
+  let generationId = "";
   let auth: Awaited<ReturnType<typeof userFromBearer>> = null;
+  let tracking = false;
 
   try {
     auth = await userFromBearer(req.headers.authorization || req.headers.Authorization);
-    if (!auth) return sendJson(res, 401, { error: "Sign in to use platform credits." });
+    if (!auth) return sendJson(res, 401, { error: "Sign in to use platform credits." }, req);
 
-    const body = await readJsonBody(req);
-    const system = String(body.system || "");
-    const userContent = String(body.userContent || "");
-    const creative = Boolean(body.creative);
-    const modelHint = String(body.model || "gemini-2.5-flash");
-    if (!userContent.trim()) return sendJson(res, 400, { error: "Missing userContent" });
+    await assertGenerationRateLimit(auth.admin, auth.user.id);
+    beginGeneration(auth.user.id);
+    tracking = true;
 
-    // Ensure profile row
-    await auth.admin.from("profiles").upsert({
-      id: auth.user.id,
-      email: auth.user.email,
-    });
-
-    const { data: profile } = await auth.admin
-      .from("profiles")
-      .select("credits_balance, credits_lifetime_used")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-
-    const bal = Number(profile?.credits_balance ?? 0);
-    if (bal < 1) {
-      return sendJson(res, 402, {
-        error: "NO_CREDITS",
-        message:
-          "You’ve used your free platform prompts. Upgrade to Pro or add your own API key (BYOK).",
-        remaining: 0,
-      });
+    const raw = await readJsonBody(req);
+    const parsed = GeminiPlatformRequestSchema.safeParse(raw);
+    if (!parsed.success) {
+      return sendJson(res, 400, { error: zodErrorMessage(parsed.error) }, req);
     }
+    const body = parsed.data;
+    const system = body.system || "";
+    const userContent = body.userContent;
+    const creative = Boolean(body.creative);
+    const modelHint = body.model || "gemini-2.5-flash";
 
-    const { data: updated, error: spendErr } = await auth.admin
-      .from("profiles")
-      .update({
-        credits_balance: bal - 1,
-        credits_lifetime_used: Number(profile?.credits_lifetime_used || 0) + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", auth.user.id)
-      .eq("credits_balance", bal)
-      .select("credits_balance")
-      .maybeSingle();
+    generationId = newGenerationId(
+      String(req.headers["x-generation-id"] || body.generationId || "")
+    );
 
-    if (spendErr || !updated) {
-      return sendJson(res, 409, {
-        error: "CREDIT_RACE",
-        message: "Could not reserve a credit — retry.",
-      });
+    const spend = await spendPlatformCredit(
+      auth.admin,
+      auth.user.id,
+      generationId,
+      "platform_generation"
+    );
+    if (!spend.ok) {
+      const status = spend.code === "NO_CREDITS" ? 402 : 409;
+      return sendJson(
+        res,
+        status,
+        {
+          error: spend.code,
+          message: spend.message,
+          remaining: spend.remaining ?? 0,
+        },
+        req
+      );
     }
     consumed = true;
-    await auth.admin.from("usage_events").insert({
-      user_id: auth.user.id,
-      kind: "credit_spend",
-      amount: 1,
-      meta: { reason: "platform_generation" },
-    });
 
     const parts: any[] = [{ text: `${system}\n\n${userContent}` }];
     if (Array.isArray(body.inlineImages)) {
@@ -126,36 +125,41 @@ export default async function handler(req: any, res: any) {
       const text = (data?.candidates?.[0]?.content?.parts || [])
         .map((p: any) => p.text || "")
         .join("");
-      return sendJson(res, 200, {
-        text,
-        model,
-        remaining: updated.credits_balance,
-      });
+      return sendJson(
+        res,
+        200,
+        {
+          text,
+          model,
+          remaining: spend.remaining,
+          generationId,
+        },
+        req
+      );
     }
     throw new Error(lastErr);
   } catch (e: any) {
-    if (consumed && auth) {
+    if (e instanceof BodyTooLargeError) {
+      return sendJson(res, 413, { error: e.message }, req);
+    }
+    if (e instanceof RateLimitError) {
+      return sendJson(res, 429, { error: e.message }, req);
+    }
+    if (consumed && auth && generationId) {
       try {
-        const { data: p } = await auth.admin
-          .from("profiles")
-          .select("credits_balance")
-          .eq("id", auth.user.id)
-          .maybeSingle();
-        await auth.admin
-          .from("profiles")
-          .update({ credits_balance: Number(p?.credits_balance || 0) + 1 })
-          .eq("id", auth.user.id);
-        await auth.admin.from("usage_events").insert({
-          user_id: auth.user.id,
-          kind: "credit_refund",
-          amount: 1,
-          meta: { reason: "platform_generation_failed" },
-        });
+        await refundPlatformCredit(
+          auth.admin,
+          auth.user.id,
+          generationId,
+          "platform_generation_failed"
+        );
       } catch {
         /* ignore refund errors */
       }
     }
     console.error("[ai/gemini]", e);
-    return sendJson(res, 500, { error: e.message || "Platform generation failed" });
+    return sendJson(res, 500, { error: e.message || "Platform generation failed" }, req);
+  } finally {
+    if (tracking && auth) endGeneration(auth.user.id);
   }
 }

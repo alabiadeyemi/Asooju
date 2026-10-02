@@ -36,7 +36,7 @@ export default function Privacy() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {[
-              { icon: Lock, title: "AES-256 Encryption", desc: "Your API keys and sensitive project data are encrypted at rest." },
+              { icon: Lock, title: "Browser-local BYOK", desc: "If you use your own AI key, ShipKernel stores it locally in this browser on this device." },
               { icon: Eye, title: "No Data Selling", desc: "We never monetize your personal or project data with third parties." },
             ].map((item, i) => (
               <div key={i} className="p-6 rounded-3xl border border-white/5 bg-white/[0.01]">
@@ -52,7 +52,7 @@ export default function Privacy() {
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               1. Information We Collect
             </h2>
-            <p>We collect your email address, usage data, and optionally your API keys (encrypted). We only collect what is strictly necessary to provide our generation services.</p>
+            <p>We collect account and usage information needed to operate ShipKernel. If you choose BYOK, your AI provider key is stored locally in your browser rather than in the ShipKernel project database.</p>
           </section>
 
           <section>
@@ -68,7 +68,7 @@ export default function Privacy() {
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               3. Data Storage & Security
             </h2>
-            <p>All data is encrypted in-transit using TLS 1.3 and at rest using industry-standard AES-256. Project data is stored in isolated database schemas to ensure maximum privacy.</p>
+            <p>Connections to ShipKernel and supported third-party services use HTTPS/TLS. Data stored by our infrastructure is protected using the security controls provided by our hosting and database providers. BYOK keys stored in your browser are not presented as server-side encrypted vault secrets.</p>
           </section>
 
           <section className="p-8 rounded-[32px] border border-white/5 bg-white/[0.01] flex items-start gap-6">

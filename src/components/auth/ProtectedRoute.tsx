@@ -1,16 +1,31 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { hasAdminSession } from "@/lib/admin-session";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  /** Require app_metadata.role === "admin" or email in VITE_ADMIN_EMAILS */
+  /** Require operator admin session (ADMIN_EMAIL / ADMIN_PASSWORD) */
   requireAdmin?: boolean;
+  /** When admin gate fails, send to /admin/login instead of /app */
+  adminLoginRedirect?: boolean;
 }
 
-export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, loading, isAdmin, isGuest, mustOnboard } = useAuth();
+export const ProtectedRoute = ({
+  children,
+  requireAdmin = false,
+  adminLoginRedirect = false,
+}: ProtectedRouteProps) => {
+  const { user, loading, mustOnboard } = useAuth();
   const location = useLocation();
+
+  // Admin console is separate from builder Auth
+  if (requireAdmin) {
+    if (!hasAdminSession()) {
+      return <Navigate to="/admin/login" replace />;
+    }
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (
@@ -21,16 +36,18 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
   }
 
   if (!user) {
-    return <Navigate to="/auth/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to={adminLoginRedirect ? "/admin/login" : "/auth/login"}
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   }
 
-  // Finish onboarding before app shell (guests skip)
+  // Finish onboarding before app shell (guests skip).
   if (mustOnboard && !location.pathname.startsWith("/auth/")) {
     return <Navigate to="/auth/onboarding" replace />;
-  }
-
-  if (requireAdmin && (isGuest || !isAdmin)) {
-    return <Navigate to="/app" replace />;
   }
 
   return <>{children}</>;

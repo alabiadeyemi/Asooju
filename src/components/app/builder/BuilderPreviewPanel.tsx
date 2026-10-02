@@ -1,5 +1,6 @@
 import React from "react";
 import { Loader2, RefreshCw, AlertTriangle, Sparkles, FileCode } from "lucide-react";
+import { BuilderSandpackPreview } from "@/components/app/builder/BuilderSandpackPreview";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,11 @@ interface BuilderPreviewPanelProps {
   previewError?: string;
   onRefresh?: () => void;
   onFixError?: () => void;
+  sandpackPreview?: boolean;
+  onToggleSandpackPreview?: () => void;
+  vfsFiles?: Record<string, string>;
+  projectName?: string;
+  onSandpackVerify?: (outcome: "live" | "error", message?: string) => void;
 }
 
 export const BuilderPreviewPanel: React.FC<BuilderPreviewPanelProps> = ({
@@ -45,6 +51,11 @@ export const BuilderPreviewPanel: React.FC<BuilderPreviewPanelProps> = ({
   previewError,
   onRefresh,
   onFixError,
+  sandpackPreview = false,
+  onToggleSandpackPreview,
+  vfsFiles = {},
+  projectName = "preview",
+  onSandpackVerify,
 }) => {
   const booting = !hasVfs || !isPreviewReady;
   const showBuildOverlay = isGenerating && viewMode === "preview";
@@ -122,6 +133,18 @@ export const BuilderPreviewPanel: React.FC<BuilderPreviewPanelProps> = ({
       </div>
 
       <div className="flex-1 relative overflow-hidden flex flex-col">
+        {sandpackPreview && viewMode === "code" && isGenerating && (
+          <div
+            className="fixed w-0 h-0 overflow-hidden opacity-0 pointer-events-none"
+            aria-hidden
+          >
+            <BuilderSandpackPreview
+              vfs={vfsFiles}
+              projectName={projectName}
+              onSandpackVerify={onSandpackVerify}
+            />
+          </div>
+        )}
         {viewMode === "code" ? (
           <div className="flex-1 overflow-hidden flex flex-col bg-[#020202]">
             <textarea
@@ -133,29 +156,64 @@ export const BuilderPreviewPanel: React.FC<BuilderPreviewPanelProps> = ({
           </div>
         ) : (
           <div className="flex-1 relative bg-[#050505] flex flex-col">
-            {/* Always keep iframe mounted so we don't go blank */}
-            <iframe
-              key={sandboxKey}
-              ref={iframeRef}
-              className={cn(
-                "absolute inset-0 w-full h-full border-0 bg-white transition-opacity duration-300",
-                booting && !isGenerating ? "opacity-0" : "opacity-100"
-              )}
-              title="Preview"
-              sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
-              src={`/preview-sandbox.html?v=${sandboxKey}`}
-            />
+            {onToggleSandpackPreview && (
+              <div className="absolute top-2 right-2 z-40 flex rounded-md border border-white/10 bg-black/60 p-0.5 text-[9px] font-semibold uppercase tracking-wider">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!sandpackPreview) onToggleSandpackPreview();
+                  }}
+                  className={cn(
+                    "rounded px-2 py-0.5 transition-colors",
+                    sandpackPreview ? "bg-white/10 text-white" : "text-white/35 hover:text-white/55"
+                  )}
+                  title="Vite preview (matches export)"
+                >
+                  Live
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sandpackPreview) onToggleSandpackPreview();
+                  }}
+                  className={cn(
+                    "rounded px-2 py-0.5 transition-colors",
+                    !sandpackPreview ? "bg-white/10 text-white" : "text-white/35 hover:text-white/55"
+                  )}
+                  title="Fast draft iframe (legacy sandbox)"
+                >
+                  Draft
+                </button>
+              </div>
+            )}
+            {sandpackPreview ? (
+              <BuilderSandpackPreview
+                vfs={vfsFiles}
+                projectName={projectName}
+                onSandpackVerify={onSandpackVerify}
+              />
+            ) : (
+              <iframe
+                key={sandboxKey}
+                ref={iframeRef}
+                className={cn(
+                  "absolute inset-0 w-full h-full border-0 bg-white transition-opacity duration-300",
+                  booting && !isGenerating ? "opacity-0" : "opacity-100"
+                )}
+                title="Preview"
+                sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                src={`/preview-sandbox.html?v=${sandboxKey}`}
+              />
+            )}
 
-            {booting && !isGenerating && (
+            {booting && !isGenerating && !sandpackPreview && (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#050505] gap-3 px-6 text-center">
                 <Loader2 className="w-6 h-6 text-primary animate-spin" />
                 <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/35">
                   Loading preview
                 </span>
                 <p className="text-[11px] text-white/30 max-w-sm leading-relaxed">
-                  Preview runs inside this app (same origin). If the page says “refused to connect”,
-                  open the Vite URL on port <span className="text-white/50 font-mono">8080</span> —
-                  not a stale 8081/8082 tab.
+                  Draft preview uses the legacy iframe sandbox.
                 </p>
                 {onRefresh && (
                   <Button

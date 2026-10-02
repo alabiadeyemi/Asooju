@@ -17,6 +17,9 @@ export interface Database {
           prompt: string | null;
           code: string | null;
           vfs_files: Record<string, string> | null;
+          chat_messages: Json | null;
+          preview_supabase_url: string | null;
+          preview_supabase_anon_key: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +30,9 @@ export interface Database {
           prompt?: string | null;
           code?: string | null;
           vfs_files?: Record<string, string> | null;
+          chat_messages?: Json | null;
+          preview_supabase_url?: string | null;
+          preview_supabase_anon_key?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -37,6 +43,9 @@ export interface Database {
           prompt?: string | null;
           code?: string | null;
           vfs_files?: Record<string, string> | null;
+          chat_messages?: Json | null;
+          preview_supabase_url?: string | null;
+          preview_supabase_anon_key?: string | null;
           created_at?: string;
           updated_at?: string;
         };

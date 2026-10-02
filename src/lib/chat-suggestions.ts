@@ -16,7 +16,7 @@ export type ChatSuggestion = {
 export type SuggestionContext = {
   vfs: Record<string, string>;
   previewError?: string;
-  agentMode?: "plan" | "build";
+  agentMode?: "talk" | "plan" | "build";
   phase?: string;
   hasMoreWaves?: boolean;
 };
@@ -149,19 +149,58 @@ export function buildChatSuggestions(ctx: SuggestionContext): ChatSuggestion[] {
     });
   }
 
-  // Blank canvas — only workspace-bootstrap tips, not random product ideas
+  if (ctx.agentMode === "talk") {
+    add({
+      id: "talk-discover",
+      label: "Help me decide",
+      prompt:
+        "I want to build something but I’m not sure yet. Ask me clarifying questions and give 3 direction options — no plan waves and no code.",
+      send: true,
+    });
+    add({
+      id: "talk-explain",
+      label: "Explain this app",
+      prompt: "Explain what this workspace currently does, based on the file tree — no code changes.",
+      send: true,
+    });
+    add({
+      id: "talk-next",
+      label: "What should I build next?",
+      prompt: "Given the current app, what are the 3 highest-leverage next features? Talk only — no files.",
+      send: true,
+    });
+    if (ctx.previewError) {
+      add({
+        id: "talk-err",
+        label: "Explain the error",
+        prompt:
+          "Explain the current preview/terminal error in plain language and what I'd change. Don't write files yet.",
+        send: true,
+      });
+    }
+    return out.slice(0, MAX);
+  }
+
+  // Blank canvas — discovery first, not “scaffold now”
   if (isSeedWorkspace(vfs) || pathsOf(vfs).length <= 2) {
     add({
-      id: "scaffold",
-      label: "Scaffold from prompt",
+      id: "discover",
+      label: "Discover first",
       prompt:
-        "Replace the blank canvas with a unique multifile app from my next message. Distinct brand, no generic AI layout, no ShipKernel tags.",
+        "Help me pick what to build. Ask clarifying questions and offer 3 product directions — no plan card and no code yet.",
+      send: true,
+    });
+    add({
+      id: "scaffold",
+      label: "I already know — build it",
+      prompt:
+        "Replace the blank canvas with a unique multifile app from this brief (I’ll describe it next). Distinct brand, no generic AI layout.",
     });
     if (ctx.agentMode === "plan") {
       add({
         id: "plan-blank",
-        label: "Plan first",
-        prompt: "Plan the build against a blank workspace — waves, files, and risks. No code yet.",
+        label: "Plan once brief is clear",
+        prompt: "Once I confirm the product, draft a plan with waves and risks — no code yet.",
       });
     }
     return out.slice(0, MAX);

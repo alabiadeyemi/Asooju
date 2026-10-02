@@ -8,6 +8,7 @@ import {
   Zap,
   ListChecks,
   Hammer,
+  MessageSquare,
   Check,
   Square,
   Undo2,
@@ -24,6 +25,7 @@ import {
   filesToAttachments,
   shouldCollapsePaste,
   textToPasteAttachment,
+  MAX_ATTACHMENTS,
   type ChatAttachment,
 } from "@/lib/attachments";
 import type {
@@ -44,6 +46,8 @@ export type ChatMessage = {
     files?: string[];
     kind?: "plan" | "checkpoint" | "status";
     plan?: BuildPlan;
+    stream?: boolean;
+    mood?: string;
     checkpoint?: {
       wave: number;
       maxWaves: number;
@@ -64,6 +68,9 @@ interface BuilderChatPanelProps {
     opts?: { attachments?: ChatAttachment[]; source?: "user" | "autofix" }
   ) => void;
   thought?: string;
+  liveLog?: string[];
+  moodLabel?: string;
+  moodEmoji?: string;
   steps?: AgentStep[];
   progress?: number;
   autoFixEnabled?: boolean;
@@ -86,14 +93,48 @@ interface BuilderChatPanelProps {
   onUndo?: () => void;
   canUndo?: boolean;
   queuedCount?: number;
+  briefApprovalVisible?: boolean;
+  briefReady?: boolean;
+  briefSummary?: string;
+  onApproveBrief?: () => void;
 }
 
-function MessageBody({ content }: { content: string }) {
-  const lines = content.split("\n");
+function MessageBody({ content, stream }: { content: string; stream?: boolean }) {
+  const [shown, setShown] = useState(stream ? "" : content);
+  const [done, setDone] = useState(!stream);
+
+  useEffect(() => {
+    if (!stream) {
+      setShown(content);
+      setDone(true);
+      return;
+    }
+    setShown("");
+    setDone(false);
+    let i = 0;
+    const chunk = Math.max(2, Math.ceil(content.length / 80));
+    const id = window.setInterval(() => {
+      i = Math.min(content.length, i + chunk);
+      setShown(content.slice(0, i));
+      if (i >= content.length) {
+        window.clearInterval(id);
+        setDone(true);
+      }
+    }, 16);
+    return () => window.clearInterval(id);
+  }, [content, stream]);
+
+  const lines = shown.split("\n");
   return (
     <div className="space-y-1">
       {lines.map((line, i) => {
-        if (line === "Plan" || line === "Files") {
+        if (
+          line === "Plan" ||
+          line === "Files" ||
+          line === "What I aimed for" ||
+          line === "Files touched" ||
+          line === "Along the way"
+        ) {
           return (
             <div
               key={i}
@@ -114,6 +155,9 @@ function MessageBody({ content }: { content: string }) {
         return (
           <p key={i} className="text-[12.5px] leading-relaxed text-inherit">
             {line}
+            {!done && i === lines.length - 1 && (
+              <span className="inline-block w-1.5 h-3 ml-0.5 bg-white/35 animate-pulse align-middle" />
+            )}
           </p>
         );
       })}
@@ -218,6 +262,48 @@ function PlanCard({
   );
 }
 
+function BriefApprovalCard({
+  ready,
+  summary,
+  disabled,
+  onApprove,
+}: {
+  ready: boolean;
+  summary?: string;
+  disabled?: boolean;
+  onApprove?: () => void;
+}) {
+  return (
+    <div className="mt-2.5 rounded-xl border border-white/10 bg-[#0c0c0e] overflow-hidden">
+      <div className="px-3 py-2 border-b border-white/[0.06]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+          Brief gate
+        </p>
+        <p className="text-[11px] text-white/55 mt-1 leading-relaxed">
+          {ready
+            ? "Brief looks clear enough to build. I won’t write files until you approve — even in Build mode."
+            : "Still clarifying the product. Add type, audience, and must-have screen — then approve."}
+        </p>
+        {summary && ready && (
+          <p className="text-[10px] text-white/35 mt-2 line-clamp-4 font-mono">{summary.slice(0, 320)}</p>
+        )}
+      </div>
+      <div className="px-2.5 py-2 flex flex-wrap gap-1.5">
+        <Button
+          type="button"
+          size="sm"
+          disabled={disabled || !ready}
+          onClick={onApprove}
+          className="h-7 text-[11px] rounded-lg bg-white text-black hover:bg-white/90 disabled:opacity-40"
+        >
+          <Check className="w-3 h-3 mr-1" />
+          Approve brief & build
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function CheckpointCard({
   hasMore,
   disabled,
@@ -235,7 +321,7 @@ function CheckpointCard({
   if (autonomous) {
     return (
       <div className="mt-2 text-[10px] text-white/35">
-        Continuing autonomously…
+        Auto-continues only when preview is healthy…
         <button
           type="button"
           disabled={disabled}
@@ -400,12 +486,15 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   setChatInput,
   handleSendMessage,
   thought = "",
+  liveLog = [],
+  moodLabel,
+  moodEmoji,
   steps = [],
   progress = 0,
   autoFixEnabled = true,
   onToggleAutoFix,
   creditsLabel,
-  agentMode = "build",
+  agentMode = "talk",
   onAgentModeChange,
   onApprovePlan,
   onContinueWave,
@@ -422,6 +511,10 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   onUndo,
   canUndo = false,
   queuedCount = 0,
+  briefApprovalVisible = false,
+  briefReady = false,
+  briefSummary = "",
+  onApproveBrief,
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -435,8 +528,10 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   );
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isGenerating, thought, steps, progress, attachments]);
+    // Only follow chat on messages / generation start-stop — NOT on thought/log/steps
+    // (those update constantly and smooth-scroll shakes the whole panel)
+    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, [messages.length, isGenerating, attachments.length]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -464,7 +559,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
     if (!list || !list.length) return;
     try {
       const next = await filesToAttachments(list, attachments.length);
-      setAttachments((prev) => [...prev, ...next].slice(0, 4));
+      setAttachments((prev) => [...prev, ...next].slice(0, MAX_ATTACHMENTS));
     } catch (e: any) {
       toast.error(e?.message || "Could not attach file");
     }
@@ -526,7 +621,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
     const text = e.clipboardData?.getData("text/plain") || "";
     if (shouldCollapsePaste(text)) {
       e.preventDefault();
-      if (attachments.length >= 6) {
+      if (attachments.length >= MAX_ATTACHMENTS) {
         toast.error("Max 6 attachments per message");
         return;
       }
@@ -552,6 +647,20 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
             <div className="flex rounded-md border border-white/[0.08] p-0.5">
               <button
                 type="button"
+                onClick={() => onAgentModeChange("talk")}
+                className={cn(
+                  "flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
+                  agentMode === "talk"
+                    ? "bg-white/10 text-white/85"
+                    : "text-white/30 hover:text-white/50"
+                )}
+                title="Chat only — no file writes"
+              >
+                <MessageSquare className="w-2.5 h-2.5" />
+                Talk
+              </button>
+              <button
+                type="button"
                 onClick={() => onAgentModeChange("plan")}
                 className={cn(
                   "flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
@@ -573,7 +682,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                     ? "bg-white/10 text-white/85"
                     : "text-white/30 hover:text-white/50"
                 )}
-                title="Autonomous build"
+                title="Autopilot after you approve a clear brief"
               >
                 <Hammer className="w-2.5 h-2.5" />
                 Build
@@ -630,7 +739,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                       ? "Plan"
                       : m.meta?.kind === "checkpoint"
                         ? "Checkpoint"
-                        : "ShipKernel"}
+                        : "ShipKernel AI"}
                 </span>
               )}
               <div
@@ -667,7 +776,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                   </div>
                 )}
                 {m.role === "assistant" ? (
-                  <MessageBody content={m.content} />
+                  <MessageBody content={m.content} stream={Boolean(m.meta?.stream)} />
                 ) : m.content.trim() ? (
                   <div className="whitespace-pre-wrap">{m.content}</div>
                 ) : null}
@@ -695,12 +804,15 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
             </div>
           ))}
 
-          {(isGenerating || steps.length > 0) && (
+          {(isGenerating || steps.length > 0 || thought || liveLog.length > 0) && (
             <AgentActivityCard
               isGenerating={isGenerating}
               steps={steps}
               thought={thought}
+              liveLog={liveLog}
               progress={progress}
+              moodLabel={moodLabel}
+              moodEmoji={moodEmoji}
             />
           )}
 
@@ -727,6 +839,17 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
         {queuedCount > 0 && (
           <div className="mb-1.5 text-[10px] text-white/35 px-0.5">
             {queuedCount} queued — runs after current step
+          </div>
+        )}
+
+        {briefApprovalVisible && (
+          <div className="mb-2">
+            <BriefApprovalCard
+              ready={briefReady}
+              summary={briefSummary}
+              disabled={isGenerating}
+              onApprove={onApproveBrief}
+            />
           </div>
         )}
 
@@ -793,11 +916,13 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
             ref={textareaRef}
             rows={1}
             placeholder={
-              agentMode === "plan"
-                ? "Ask, refine the plan, or paste a brief…"
-                : isGenerating
-                  ? "Queue a follow-up…"
-                  : "Message the agent — paste specs collapse into chips…"
+              agentMode === "talk"
+                ? "Ask anything — Talk never writes files…"
+                : agentMode === "plan"
+                  ? "Ask, refine the plan, or paste a brief…"
+                  : isGenerating
+                    ? "Queue a follow-up…"
+                    : "Message the agent — paste specs collapse into chips…"
             }
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}

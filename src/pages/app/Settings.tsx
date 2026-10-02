@@ -53,12 +53,16 @@ const providers = [
 
 const Settings = () => {
   const location = useLocation();
-  const { user, isGuest, logout } = useAuth();
+  const { user, isGuest, logout, updatePassword } = useAuth();
   const { profile, loading: billingLoading, remaining, planLabel, byok, isPro, refresh: refreshBilling } = useBilling();
   const { startCheckout, openPortal, isProcessing } = useCheckout();
   const [displayName, setDisplayName] = useState(
     () => user?.user_metadata?.full_name || user?.email?.split("@")[0] || ""
   );
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [pwBusy, setPwBusy] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(() =>
     localStorage.getItem('shipkernel_active_provider') || "openai"
   );
@@ -183,9 +187,34 @@ const Settings = () => {
   };
 
   const handleDeleteKey = (id: string) => {
+    const removed = keys.find((k: any) => k.id === id);
     const filtered = keys.filter((k: any) => k.id !== id);
     setKeys(filtered);
-    localStorage.setItem('shipkernel_keys', JSON.stringify(filtered));
+    localStorage.setItem("shipkernel_keys", JSON.stringify(filtered));
+
+    if (removed) {
+      const STORAGE_BY_PROVIDER: Record<string, string> = {
+        openai: "shipkernel_openai_key",
+        gemini: "shipkernel_gemini_key",
+        grok: "shipkernel_grok_key",
+        claude: "shipkernel_claude_key",
+        deepseek: "shipkernel_deepseek_key",
+      };
+      const provider = String(removed.provider || "").toLowerCase();
+      const normalized =
+        provider === "google gemini"
+          ? "gemini"
+          : provider === "anthropic claude"
+            ? "claude"
+            : provider === "xai grok"
+              ? "grok"
+              : provider;
+      const slot = STORAGE_BY_PROVIDER[normalized];
+      if (slot && localStorage.getItem(slot) === removed.value) {
+        localStorage.removeItem(slot);
+      }
+    }
+
     toast.info("Key Deleted");
   };
 
@@ -292,6 +321,101 @@ const Settings = () => {
                     </Button>
                   </div>
 
+                  {!isGuest && (
+                    <div className="rounded-[32px] border border-white/5 bg-[#0A0A0B]/50 p-8 backdrop-blur-3xl space-y-6">
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                          <Lock className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-white mb-1">Change password</h2>
+                          <p className="text-sm text-muted-foreground/50">
+                            Update the password for {user?.email}. OAuth-only accounts may need to set one here first.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 ml-1">
+                            New password
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              type={showPw ? "text" : "password"}
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              minLength={6}
+                              autoComplete="new-password"
+                              className="h-12 bg-white/5 border-white/10 rounded-xl pr-12"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPw((s) => !s)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                            >
+                              {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 ml-1">
+                            Confirm
+                          </Label>
+                          <Input
+                            type={showPw ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            minLength={6}
+                            autoComplete="new-password"
+                            className="h-12 bg-white/5 border-white/10 rounded-xl"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="hero"
+                        className="rounded-xl px-10 h-11 bg-white text-black hover:bg-white/90"
+                        disabled={pwBusy || !newPassword}
+                        onClick={async () => {
+                          if (newPassword !== confirmPassword) {
+                            toast.error("Passwords do not match");
+                            return;
+                          }
+                          if (newPassword.length < 6) {
+                            toast.error("Password must be at least 6 characters");
+                            return;
+                          }
+                          setPwBusy(true);
+                          try {
+                            await updatePassword(newPassword);
+                            setNewPassword("");
+                            setConfirmPassword("");
+                          } catch {
+                            /* toast in hook */
+                          } finally {
+                            setPwBusy(false);
+                          }
+                        }}
+                      >
+                        {pwBusy ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving…
+                          </>
+                        ) : (
+                          "Update password"
+                        )}
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground/40">
+                        Not signed in? Use{" "}
+                        <Link to="/auth/forgot-password" className="text-primary/80 hover:underline">
+                          Forgot password
+                        </Link>{" "}
+                        on the login page.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="rounded-[32px] border border-red-500/10 bg-red-500/5 p-8 backdrop-blur-3xl">
                     <h2 className="text-lg font-bold text-red-400 mb-2 uppercase tracking-tight">Danger Zone</h2>
                     <p className="text-sm text-red-300/40 mb-6">
@@ -305,6 +429,7 @@ const Settings = () => {
                       onClick={async () => {
                         if (isGuest) {
                           localStorage.removeItem("shipkernel_local_projects");
+                          localStorage.removeItem("shipkernel_project_chat");
                           await logout();
                           window.location.href = "/";
                           return;

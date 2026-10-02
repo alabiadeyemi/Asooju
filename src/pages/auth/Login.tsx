@@ -80,9 +80,12 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between ml-1">
                   <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Password</Label>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
-                    Password reset via email is not configured yet
-                  </span>
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-[10px] font-black uppercase tracking-widest text-primary/80 hover:text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
                 <div className="relative">
                   <Input

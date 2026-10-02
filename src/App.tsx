@@ -17,6 +17,8 @@ import Privacy from "./pages/Privacy";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import VerifyEmail from "./pages/auth/VerifyEmail";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Onboarding from "./pages/auth/Onboarding";
 
 import Dashboard from "./pages/app/Dashboard";
@@ -24,7 +26,8 @@ import NewProject from "./pages/app/NewProject";
 import Projects from "./pages/app/Projects";
 import ProjectBuilder from "./pages/app/ProjectBuilder";
 import Settings from "./pages/app/Settings";
-import Admin from "./pages/app/Admin";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminPanel from "./pages/admin/AdminPanel";
 import ExportPage from "./pages/app/ExportPage";
 
 import NotFound from "./pages/NotFound";
@@ -49,6 +52,8 @@ const App = () => (
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/signup" element={<Signup />} />
             <Route path="/auth/verify" element={<VerifyEmail />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/onboarding" element={<Onboarding />} />
 
             <Route
@@ -80,17 +85,16 @@ const App = () => (
               <Route index element={<ExportPage />} />
             </Route>
 
-            {/* Admin: not in sidebar — open /admin only if you're an admin */}
+            {/* Admin: separate login + panel (not AppLayout / not in user sidebar) */}
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route
               path="/admin"
               element={
-                <ProtectedRoute requireAdmin>
-                  <AppLayout />
+                <ProtectedRoute requireAdmin adminLoginRedirect>
+                  <AdminPanel />
                 </ProtectedRoute>
               }
-            >
-              <Route index element={<Admin />} />
-            </Route>
+            />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,0 +1,16 @@
+# Keep Vercel uploads lean — static + api only
+.git
+.DS_Store
+node_modules
+dist
+.env
+.env.*
+!.env.example
+
+# Local notes / design dumps (not needed at runtime)
+*.docx
+Capture.PNG
+Screenshot *.png
+src/r.txt
+test-auth.js
+HOW_TO_RUN.md

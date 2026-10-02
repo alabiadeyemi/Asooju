@@ -1,15 +1,27 @@
 import {
+  applyCors,
+  BodyTooLargeError,
   handleOptions,
+  newGenerationId,
   readJsonBody,
   sendJson,
   userFromBearer,
 } from "../_lib/http";
-import { runLlmJson, parseJsonLoose } from "../_lib/llm";
+import { runLlmJson, parseModelJson } from "../_lib/llm";
+import { agentProgressMessage } from "../../src/lib/agent-identity";
 import {
   buildUserContent,
   type GenerationOptions,
 } from "../../src/lib/generation-prompt";
 import { classifyBuildScale, waveBudget } from "../../src/lib/complexity";
+import { spendPlatformCredit, refundPlatformCredit } from "../_lib/credits";
+import {
+  assertGenerationRateLimit,
+  beginGeneration,
+  endGeneration,
+  RateLimitError,
+} from "../_lib/rate-limit";
+import { GenerateRequestSchema, zodErrorMessage } from "../_lib/schemas";
 
 function normalizeFiles(data: any): { path: string; content: string }[] {
   const files: { path: string; content: string }[] = Array.isArray(data?.files)
@@ -39,41 +51,37 @@ function writeNdjson(res: any, obj: unknown) {
 /**
  * Unified backend generation (BYOK or platform).
  * Streams NDJSON: status | thought | file | done | error
- *
- * Headers:
- * - Authorization: Bearer <supabase jwt> (required for platform credits)
- * - x-provider: deepseek|openai|gemini|claude|grok
- * - x-api-key: BYOK key (optional — if absent, uses platform key + credits)
  */
 export default async function handler(req: any, res: any) {
   if (handleOptions(req, res)) return;
-  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" });
+  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" }, req);
 
+  applyCors(req, res);
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key, x-provider");
 
   let consumed = false;
+  let generationId = "";
   let auth: Awaited<ReturnType<typeof userFromBearer>> = null;
+  let tracking = false;
+  let trackingUserId = "";
 
   try {
-    const body = await readJsonBody(req);
-    const prompt = String(body.prompt || "");
-    const vfs = (body.vfs && typeof body.vfs === "object" ? body.vfs : {}) as Record<
-      string,
-      string
-    >;
-    const currentErrors = body.currentErrors ? String(body.currentErrors) : "None";
-    const projectName = body.projectName ? String(body.projectName) : undefined;
-    const attachmentNote = body.attachmentNote ? String(body.attachmentNote) : undefined;
-
-    if (!prompt.trim()) {
-      writeNdjson(res, { type: "error", message: "Missing prompt" });
+    const raw = await readJsonBody(req);
+    const parsed = GenerateRequestSchema.safeParse(raw);
+    if (!parsed.success) {
+      writeNdjson(res, { type: "error", message: zodErrorMessage(parsed.error) });
       res.end();
       return;
     }
+
+    const body = parsed.data;
+    const prompt = body.prompt;
+    const vfs = (body.vfs || {}) as Record<string, string>;
+    const currentErrors = body.currentErrors ? String(body.currentErrors) : "None";
+    const projectName = body.projectName;
+    const attachmentNote = body.attachmentNote;
 
     const provider = String(
       req.headers["x-provider"] || body.provider || "deepseek"
@@ -93,67 +101,52 @@ export default async function handler(req: any, res: any) {
         res.end();
         return;
       }
+
+      await assertGenerationRateLimit(auth.admin, auth.user.id);
+      beginGeneration(auth.user.id);
+      tracking = true;
+      trackingUserId = auth.user.id;
+
       usePlatform = true;
       apiKey =
         process.env.PLATFORM_GEMINI_API_KEY ||
         process.env.GEMINI_API_KEY ||
         process.env.PLATFORM_DEEPSEEK_API_KEY ||
         process.env.DEEPSEEK_API_KEY ||
-        process.env.VITE_DEEPSEEK_API_KEY ||
-        process.env.VITE_GEMINI_API_KEY ||
         "";
       if (!apiKey) {
         writeNdjson(res, {
           type: "error",
-          message: "Platform AI not configured (PLATFORM_GEMINI_API_KEY or PLATFORM_DEEPSEEK_API_KEY).",
+          message:
+            "Platform AI not configured (PLATFORM_GEMINI_API_KEY or PLATFORM_DEEPSEEK_API_KEY).",
         });
         res.end();
         return;
       }
 
-      // Spend credit
-      await auth.admin.from("profiles").upsert({ id: auth.user.id, email: auth.user.email });
-      const { data: profile } = await auth.admin
-        .from("profiles")
-        .select("credits_balance, credits_lifetime_used")
-        .eq("id", auth.user.id)
-        .maybeSingle();
-      const bal = Number(profile?.credits_balance ?? 0);
-      if (bal < 1) {
+      generationId = newGenerationId(
+        String(req.headers["x-generation-id"] || body.generationId || "")
+      );
+
+      const spend = await spendPlatformCredit(
+        auth.admin,
+        auth.user.id,
+        generationId,
+        "backend_generate"
+      );
+      if (!spend.ok) {
         writeNdjson(res, {
           type: "error",
-          code: "NO_CREDITS",
-          message:
-            "No platform credits left. Upgrade to Pro or add your own API key (BYOK).",
+          code: spend.code,
+          message: spend.message,
         });
         res.end();
         return;
       }
-      const { data: updated, error } = await auth.admin
-        .from("profiles")
-        .update({
-          credits_balance: bal - 1,
-          credits_lifetime_used: Number(profile?.credits_lifetime_used || 0) + 1,
-        })
-        .eq("id", auth.user.id)
-        .eq("credits_balance", bal)
-        .select("credits_balance")
-        .maybeSingle();
-      if (error || !updated) {
-        writeNdjson(res, { type: "error", message: "Could not reserve a credit — retry." });
-        res.end();
-        return;
-      }
       consumed = true;
-      await auth.admin.from("usage_events").insert({
-        user_id: auth.user.id,
-        kind: "credit_spend",
-        amount: 1,
-        meta: { reason: "backend_generate", provider: usePlatform ? "platform" : provider },
-      });
       writeNdjson(res, {
         type: "status",
-        message: `Platform credit used · ${updated.credits_balance} left`,
+        message: `Platform credit used · ${spend.remaining} left`,
       });
     }
 
@@ -176,8 +169,8 @@ export default async function handler(req: any, res: any) {
     writeNdjson(res, {
       type: "status",
       message: singleWave
-        ? `Backend generate · ${effectiveProvider} · ${scale} · wave ${startWave + 1}…`
-        : `Backend generate · ${effectiveProvider} · ${scale} (${budget.maxWaves} wave${budget.maxWaves > 1 ? "s" : ""})…`,
+        ? agentProgressMessage(`building · ${scale} · wave ${startWave + 1}`)
+        : agentProgressMessage(`building · ${scale} · ${budget.maxWaves} wave${budget.maxWaves > 1 ? "s" : ""}`),
     });
 
     let workingVfs = { ...vfs };
@@ -214,9 +207,15 @@ export default async function handler(req: any, res: any) {
         temperature: intent === "create" && wave === 0 ? 0.75 : 0.35,
       });
 
-      writeNdjson(res, { type: "status", message: `Model ${model} responded (wave ${wave + 1})` });
+      writeNdjson(res, {
+        type: "status",
+        message: agentProgressMessage(`step ${wave + 1} complete`),
+      });
 
-      const data = parseJsonLoose(text);
+      const { data, recovered, note } = parseModelJson(text);
+      if (recovered && note) {
+        writeNdjson(res, { type: "status", message: note });
+      }
       if (typeof data.thought === "string" && data.thought) {
         thought = data.thought;
         writeNdjson(res, { type: "thought", text: data.thought });
@@ -254,7 +253,6 @@ export default async function handler(req: any, res: any) {
         : undefined;
 
       if (singleWave) break;
-      // Stop early if model says done
       if (wave > 0 && (!nextPaths || nextPaths.length === 0) && files.length === 0) break;
       if (wave > 0 && (!nextPaths || nextPaths.length === 0) && scale !== "enterprise") break;
       if (scale === "simple") break;
@@ -268,27 +266,37 @@ export default async function handler(req: any, res: any) {
         actions: allActions,
         files: allFiles,
         next_paths: nextPaths || [],
+        generationId: generationId || undefined,
       },
     });
     res.end();
   } catch (e: any) {
-    if (consumed && auth) {
+    if (e instanceof BodyTooLargeError) {
       try {
-        const { data: p } = await auth.admin
-          .from("profiles")
-          .select("credits_balance")
-          .eq("id", auth.user.id)
-          .maybeSingle();
-        await auth.admin
-          .from("profiles")
-          .update({ credits_balance: Number(p?.credits_balance || 0) + 1 })
-          .eq("id", auth.user.id);
-        await auth.admin.from("usage_events").insert({
-          user_id: auth.user.id,
-          kind: "credit_refund",
-          amount: 1,
-          meta: { reason: "backend_generate_failed" },
-        });
+        writeNdjson(res, { type: "error", code: "BODY_TOO_LARGE", message: e.message });
+        res.end();
+      } catch {
+        /* closed */
+      }
+      return;
+    }
+    if (e instanceof RateLimitError) {
+      try {
+        writeNdjson(res, { type: "error", code: "RATE_LIMIT", message: e.message });
+        res.end();
+      } catch {
+        /* closed */
+      }
+      return;
+    }
+    if (consumed && auth && generationId) {
+      try {
+        await refundPlatformCredit(
+          auth.admin,
+          auth.user.id,
+          generationId,
+          "backend_generate_failed"
+        );
       } catch {
         /* ignore */
       }
@@ -300,5 +308,7 @@ export default async function handler(req: any, res: any) {
     } catch {
       /* already closed */
     }
+  } finally {
+    if (tracking && trackingUserId) endGeneration(trackingUserId);
   }
 }

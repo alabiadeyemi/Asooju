@@ -8,8 +8,9 @@ import {
   Github,
   Loader2,
   FileCode,
+  ListChecks,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,9 @@ import { pushVfsToGitHub } from "@/services/github-service";
 import { toast } from "sonner";
 import { Logo } from "@/components/ui/logo";
 import { deriveCodeFromVfs } from "@/lib/vfs";
+import { prepareExportBundle } from "@/lib/export-bundle";
+import { buildShipChecklist } from "@/lib/ship-checklist";
+import { ShipChecklistPanel } from "@/components/app/export/ShipChecklistPanel";
 import { readLocalProjects } from "@/hooks/use-projects";
 
 const ExportPage = () => {
@@ -60,6 +64,15 @@ const ExportPage = () => {
 
   const fileCount = Object.keys(vfsFiles).length;
   const isGitHubConnected = !!gitHubToken;
+  const exportBundle = useMemo(
+    () => prepareExportBundle(vfsFiles, { projectName }),
+    [vfsFiles, projectName]
+  );
+  const bundledCount = Object.keys(exportBundle).length;
+  const shipChecklist = useMemo(
+    () => buildShipChecklist(vfsFiles, projectName),
+    [vfsFiles, projectName]
+  );
 
   const handlePush = async () => {
     if (!gitHubToken) {
@@ -72,7 +85,7 @@ const ExportPage = () => {
     }
 
     setIsPushing(true);
-    const toastId = toast.loading(`Pushing ${fileCount} files to GitHub...`);
+    const toastId = toast.loading(`Pushing ${bundledCount} files to GitHub (incl. run scaffold)...`);
 
     try {
       const repoName = `shipkernel-${projectId?.slice(0, 8) || "export"}`;
@@ -119,13 +132,18 @@ const ExportPage = () => {
       }
 
       const zip = new JSZip();
-      Object.entries(vfsFiles).forEach(([path, content]) => zip.file(path, content));
+      Object.entries(exportBundle).forEach(([path, content]) => zip.file(path, content));
       const blob = await zip.generateAsync({ type: "blob" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `${projectName.replace(/\s+/g, "-")}.zip`;
       a.click();
-      toast.success(`Downloaded ${fileCount} files`);
+      toast.success(`Downloaded ${bundledCount} files`, {
+        description:
+          bundledCount > fileCount
+            ? `Includes README, .env.example, and run scaffold (+${bundledCount - fileCount})`
+            : undefined,
+      });
     } catch (e: any) {
       toast.error("Download failed", { description: e.message });
     }
@@ -162,7 +180,8 @@ const ExportPage = () => {
                 <div>
                   <h3 className="text-lg font-bold uppercase tracking-tight">GitHub</h3>
                   <p className="text-sm text-muted-foreground">
-                    Push the full multifile workspace to a new repo.
+                    Same bundle as ZIP: Vite scaffold, README, .env.example, .gitignore — not secrets or
+                    node_modules. You add <code className="text-white/60">.env</code> after clone.
                   </p>
                 </div>
               </div>
@@ -178,7 +197,7 @@ const ExportPage = () => {
                   </>
                 ) : isGitHubConnected ? (
                   <>
-                    <Check className="w-4 h-4 mr-2" /> Push {fileCount} files
+                    <Check className="w-4 h-4 mr-2" /> Push {bundledCount} files
                   </>
                 ) : (
                   <>
@@ -226,6 +245,27 @@ const ExportPage = () => {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="rounded-[28px] border border-white/5 bg-[#080808]/50 p-8"
+          >
+            <div className="flex items-start gap-5 mb-6">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <ListChecks className="h-7 w-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold uppercase tracking-tight">Ship checklist</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  From workspace → local run → database → env → GitHub → Vercel. Copy SQL and env
+                  blocks below.
+                </p>
+              </div>
+            </div>
+            <ShipChecklistPanel checklist={shipChecklist} disabled={fileCount === 0} />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="rounded-[28px] border border-dashed border-white/10 bg-[#080808]/30 p-8 opacity-70"
           >
@@ -236,8 +276,8 @@ const ExportPage = () => {
               <div>
                 <h3 className="text-lg font-bold uppercase tracking-tight">Live hosting</h3>
                 <p className="text-sm text-muted-foreground">
-                  One-click Vercel deploy is not wired yet. Push to GitHub, then connect the repo in
-                  Vercel manually.
+                  One-click Vercel deploy is not wired yet. Follow the ship checklist above after
+                  GitHub push.
                 </p>
               </div>
             </div>

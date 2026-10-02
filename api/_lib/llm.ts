@@ -4,37 +4,7 @@
 
 export type LlmMessage = { role: "system" | "user" | "assistant"; content: string };
 
-export function parseJsonLoose(text: string): any {
-  let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
-  }
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const start = cleaned.indexOf("{");
-    if (start === -1) throw new Error("Model did not return JSON.");
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < cleaned.length; i++) {
-      const ch = cleaned[i];
-      if (inString) {
-        if (escape) escape = false;
-        else if (ch === "\\") escape = true;
-        else if (ch === '"') inString = false;
-        continue;
-      }
-      if (ch === '"') inString = true;
-      else if (ch === "{") depth++;
-      else if (ch === "}") {
-        depth--;
-        if (depth === 0) return JSON.parse(cleaned.slice(start, i + 1));
-      }
-    }
-    throw new Error("Could not parse model JSON.");
-  }
-}
+export { parseJsonLoose, parseModelJson } from "../../src/lib/parse-model-json";
 
 export async function callOpenAICompatible(opts: {
   baseURL: string;

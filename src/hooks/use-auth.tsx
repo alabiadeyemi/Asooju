@@ -1,10 +1,27 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, clearBrokenAuthSession } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 const GUEST_STORAGE_KEY = "shipkernel_mock_user";
 const PENDING_VERIFY_KEY = "shipkernel_pending_verify";
+
+function friendlyAuthError(error: any, fallback: string): string {
+  const raw = String(error?.message || error?.msg || fallback);
+  if (/rate.?limit|over_email_send_rate_limit/i.test(raw)) {
+    return "Email rate limit hit (Supabase free tier is ~2–4 emails/hour). Wait a bit, or turn off Confirm email for local testing, or add custom SMTP.";
+  }
+  if (/token has expired|invalid.*token|otp_expired|otp_disabled/i.test(raw)) {
+    return "That code is invalid or expired. Enter every digit from the email (often 8 digits). Resend if needed — Confirm signup template must use {{ .Token }}.";
+  }
+  if (/user already registered|already.?been.?registered/i.test(raw)) {
+    return "That email is already registered — sign in instead, or use a different email.";
+  }
+  if (/invalid api key|jwt|publishable/i.test(raw)) {
+    return "Supabase API key rejected. Put the anon/public key from Project Settings → API into VITE_SUPABASE_PUBLISHABLE_KEY and restart the dev server.";
+  }
+  return raw || fallback;
+}
 
 export type SignupResult = {
   needsEmailVerification: boolean;
@@ -16,14 +33,6 @@ export type OnboardingPayload = {
   role: string;
   goal: string;
 };
-
-function parseAdminEmails(): string[] {
-  const raw = import.meta.env.VITE_ADMIN_EMAILS || "";
-  return raw
-    .split(",")
-    .map((e: string) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 function readPendingVerify(): { email: string; fullName?: string } | null {
   try {
@@ -61,7 +70,10 @@ export const useAuth = () => {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void (async () => {
+      await clearBrokenAuthSession();
+      if (!mounted) return;
+      const { data: { session } } = await supabase.auth.getSession();
       if (!mounted) return;
       if (session?.user) {
         setUser(session.user);
@@ -78,7 +90,7 @@ export const useAuth = () => {
         }
       }
       setLoading(false);
-    });
+    })();
 
     const {
       data: { subscription },
@@ -118,10 +130,8 @@ export const useAuth = () => {
 
   const isAdmin = useMemo(() => {
     if (!user || isGuest) return false;
-    if (user.app_metadata?.role === "admin") return true;
-    const email = user.email?.toLowerCase();
-    if (email && parseAdminEmails().includes(email)) return true;
-    return false;
+    // Security control: app_metadata.role only (server-set). Never trust email allowlists.
+    return user.app_metadata?.role === "admin";
   }, [user, isGuest]);
 
   const mustOnboard = useMemo(() => needsOnboarding(user, isGuest), [user, isGuest]);
@@ -161,6 +171,10 @@ export const useAuth = () => {
   ): Promise<SignupResult> => {
     const normalized = email.trim().toLowerCase();
     try {
+      // Stale JWTs in localStorage make signUp return "Token has expired or is invalid"
+      await clearBrokenAuthSession();
+      await supabase.auth.signOut({ scope: "local" });
+
       const { data, error } = await supabase.auth.signUp({
         email: normalized,
         password,
@@ -184,12 +198,20 @@ export const useAuth = () => {
         return { needsEmailVerification: false, email: normalized };
       }
 
+      // Fake success (no identities) = email already registered with confirmations on
+      if (data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
+        const err = new Error("That email is already registered — sign in instead.");
+        throw err;
+      }
+
       writePendingVerify(normalized, fullName);
-      toast.success("Check your email for a 6-digit code");
+      toast.success("Check your email for the verification code");
       return { needsEmailVerification: true, email: normalized };
     } catch (error: any) {
-      toast.error("Signup failed", { description: error.message });
-      throw error;
+      const msg = friendlyAuthError(error, "Signup failed");
+      toast.error("Signup failed", { description: msg });
+      const err = new Error(msg);
+      throw err;
     }
   };
 
@@ -197,6 +219,8 @@ export const useAuth = () => {
     const normalized = email.trim().toLowerCase();
     const code = token.replace(/\s/g, "");
     try {
+      await clearBrokenAuthSession();
+
       // Prefer signup confirmation OTP; fall back to email OTP type
       let result = await supabase.auth.verifyOtp({
         email: normalized,
@@ -215,14 +239,16 @@ export const useAuth = () => {
       toast.success("Email verified");
       return result.data;
     } catch (error: any) {
-      toast.error("Invalid or expired code", { description: error.message });
-      throw error;
+      const msg = friendlyAuthError(error, "Invalid or expired code");
+      toast.error("Verification failed", { description: msg });
+      throw new Error(msg);
     }
   };
 
   const resendEmailCode = async (email: string) => {
     const normalized = email.trim().toLowerCase();
     try {
+      await clearBrokenAuthSession();
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: normalized,
@@ -231,8 +257,9 @@ export const useAuth = () => {
       writePendingVerify(normalized);
       toast.success("New code sent");
     } catch (error: any) {
-      toast.error("Could not resend code", { description: error.message });
-      throw error;
+      const msg = friendlyAuthError(error, "Could not resend code");
+      toast.error("Could not resend code", { description: msg });
+      throw new Error(msg);
     }
   };
 
@@ -298,6 +325,43 @@ export const useAuth = () => {
     toast.success("Guest mode — projects save locally only");
   };
 
+  const requestPasswordReset = async (email: string) => {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized.includes("@")) {
+      throw new Error("Enter a valid email");
+    }
+    try {
+      const redirectTo = `${window.location.origin}/auth/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(normalized, {
+        redirectTo,
+      });
+      if (error) throw error;
+      toast.success("Check your email", {
+        description: "We sent a password reset link if that account exists.",
+      });
+    } catch (error: any) {
+      const msg = friendlyAuthError(error, "Could not send reset email");
+      toast.error("Reset failed", { description: msg });
+      throw new Error(msg);
+    }
+  };
+
+  const updatePassword = async (password: string) => {
+    const next = String(password || "");
+    if (next.length < 6) {
+      throw new Error("Password must be at least 6 characters");
+    }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: next });
+      if (error) throw error;
+      toast.success("Password updated");
+    } catch (error: any) {
+      const msg = friendlyAuthError(error, "Could not update password");
+      toast.error("Update failed", { description: msg });
+      throw new Error(msg);
+    }
+  };
+
   const logout = async () => {
     localStorage.removeItem(GUEST_STORAGE_KEY);
     clearPendingVerify();
@@ -324,6 +388,8 @@ export const useAuth = () => {
     resendEmailCode,
     completeOnboarding,
     getPendingVerifyEmail,
+    requestPasswordReset,
+    updatePassword,
     loginWithGoogle,
     loginWithGitHub,
     loginAsGuest,

@@ -1,3 +1,5 @@
+import { prepareExportBundle } from "@/lib/export-bundle";
+
 export type VfsFiles = Record<string, string>;
 
 const toBase64 = (content: string) =>
@@ -96,40 +98,12 @@ export const pushVfsToGitHub = async (
   // Give auto_init a moment on brand-new repos
   await new Promise((r) => setTimeout(r, 800));
 
-  const entries = Object.entries(files);
+  const bundled = prepareExportBundle(files, { projectName: repoName });
+  const entries = Object.entries(bundled);
   if (entries.length === 0) throw new Error("No files to push.");
 
   for (const [path, content] of entries) {
     await putFile(token, username, repoName, path, content, message);
-  }
-
-  // Minimal package.json if missing so the repo is recognizable
-  if (!files["package.json"]) {
-    await putFile(
-      token,
-      username,
-      repoName,
-      "package.json",
-      JSON.stringify(
-        {
-          name: repoName,
-          private: true,
-          version: "0.0.1",
-          type: "module",
-          scripts: { dev: "vite", build: "vite build" },
-          dependencies: {
-            react: "^18.3.1",
-            "react-dom": "^18.3.1",
-            "react-router-dom": "^6.30.0",
-            "framer-motion": "^11.0.0",
-            "lucide-react": "^0.462.0",
-          },
-        },
-        null,
-        2
-      ),
-      "Add package.json"
-    );
   }
 
   return {

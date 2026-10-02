@@ -14,6 +14,7 @@ export type ChatAttachment = {
 };
 
 const MAX_ATTACHMENTS = 6;
+export { MAX_ATTACHMENTS };
 const MAX_IMAGE_BYTES = 1_800_000;
 const MAX_TEXT_CHARS = 12_000;
 /** Collapse pastes at/above this size (Claude-like thresholds) */

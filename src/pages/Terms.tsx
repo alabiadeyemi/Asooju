@@ -63,14 +63,14 @@ export default function Terms() {
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               4. BYOK (Bring Your Own Key)
             </h2>
-            <p>When using BYOK, you are responsible for your own API costs with third-party providers. ShipKernel stores your keys encrypted and uses them solely to make requests on your behalf.</p>
+            <p>When using BYOK, you are responsible for charges, limits and terms imposed by the selected third-party AI provider. In the current browser-local BYOK mode, the key is stored on your device and used for generation requests. You are responsible for securing the device and revoking a key if you believe it has been exposed.</p>
           </section>
 
           <section className="p-8 rounded-[32px] border border-white/5 bg-white/[0.01] flex items-start gap-6">
             <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
             <div>
               <h3 className="text-lg font-bold text-white uppercase tracking-tight mb-2">Secure Infrastructure</h3>
-              <p className="text-sm">We take security seriously. All platform interactions are encrypted, and we follow industry-standard practices to protect your data and keys.</p>
+              <p className="text-sm">We take security seriously. Platform connections use HTTPS/TLS, and we follow industry-standard practices to protect account and project data.</p>
             </div>
           </section>
         </motion.div>

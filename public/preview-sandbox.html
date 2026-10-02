@@ -142,6 +142,92 @@
       } catch (_) {}
     }
 
+    // Soft app issues (Supabase schema, async fetch failures, etc.) don't crash React —
+    // without this, agent marks "Preview healthy" while the UI shows a red error banner.
+    let lastAppIssue = "";
+    let appIssueProbeTimers = [];
+    const APP_ISSUE_RE =
+      /could not find the table|schema cache|PGRST\d+|relation ["`].+["`] does not exist|column .+ does not exist|JWT expired|invalid (api|jwt) key|Failed to fetch|NetworkError|TypeError:|ReferenceError:|is not defined|Cannot read propert|permission denied|row-level security| foreig?n key|duplicate key|violates|supabase.*error|AuthApiError|PostgrestError/i;
+
+    function isActionableIssue(text) {
+      return Boolean(text && APP_ISSUE_RE.test(String(text)));
+    }
+
+    function extractIssueSnippet(text) {
+      const raw = String(text || "").replace(/\s+/g, " ").trim();
+      const m = raw.match(
+        /Could not find the table[^.]{0,120}|PGRST\d+[^.]{0,120}|relation [^.]{0,80}|TypeError:[^.]{0,120}|ReferenceError:[^.]{0,120}|Failed to fetch[^.]{0,80}|[^.!?\n]{0,160}(?:schema cache|does not exist|row-level security)[^.!?\n]{0,80}/i
+      );
+      return (m ? m[0] : raw).slice(0, 220);
+    }
+
+    function reportAppIssue(msg, source) {
+      const clean = extractIssueSnippet(msg);
+      if (!clean || !isActionableIssue(clean)) return;
+      if (clean === lastAppIssue) return;
+      lastAppIssue = clean;
+      post("RUNTIME_ERROR", {
+        error: clean,
+        stack: source ? "app-issue:" + source : "app-issue",
+      });
+    }
+
+    function clearAppIssueProbes() {
+      for (const t of appIssueProbeTimers) clearTimeout(t);
+      appIssueProbeTimers = [];
+    }
+
+    function scheduleAppIssueProbes(token) {
+      clearAppIssueProbes();
+      lastAppIssue = "";
+      const run = (label) => {
+        if (token !== renderToken) return;
+        try {
+          const root = document.getElementById("root");
+          const text = (root && (root.innerText || root.textContent)) || "";
+          if (isActionableIssue(text)) reportAppIssue(text, "dom:" + label);
+        } catch (_) {}
+      };
+      // Async data errors often appear after first paint
+      appIssueProbeTimers.push(setTimeout(() => run("900ms"), 900));
+      appIssueProbeTimers.push(setTimeout(() => run("2200ms"), 2200));
+    }
+
+    function installGlobalIssueBridges() {
+      if (window.__skIssueBridges) return;
+      window.__skIssueBridges = true;
+
+      window.addEventListener("error", (e) => {
+        reportAppIssue(e && (e.message || (e.error && e.error.message) || e.error), "window.onerror");
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        const r = e && e.reason;
+        const msg =
+          (r && (r.message || r.error_description || r.details || r.hint)) ||
+          (typeof r === "string" ? r : "") ||
+          "Unhandled promise rejection";
+        reportAppIssue(msg, "unhandledrejection");
+      });
+
+      const origError = console.error;
+      console.error = function () {
+        try {
+          const parts = [];
+          for (let i = 0; i < arguments.length; i++) {
+            const a = arguments[i];
+            if (typeof a === "string") parts.push(a);
+            else if (a && typeof a === "object") {
+              parts.push(a.message || a.error_description || a.details || JSON.stringify(a));
+            } else if (a != null) parts.push(String(a));
+          }
+          reportAppIssue(parts.join(" "), "console.error");
+        } catch (_) {}
+        return origError.apply(console, arguments);
+      };
+    }
+
+    installGlobalIssueBridges();
+
     function ErrorBoundaryFactory() {
       return class PreviewErrorBoundary extends React.Component {
         constructor(props) {
@@ -404,7 +490,10 @@
           files: Object.keys(vfs).length,
         });
         post("PREVIEW_RENDERED", { entry: entryFile });
+        // Hard renders only — soft mid-build graphs are intentionally incomplete
+        if (!soft) scheduleAppIssueProbes(token);
       } catch (err) {
+        clearAppIssueProbes();
         if (soft) {
           // Keep previous good frame during mid-build incomplete graphs
           post("PREVIEW_STATUS", {

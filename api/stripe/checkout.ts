@@ -3,21 +3,21 @@ import {
   readJsonBody,
   sendJson,
   userFromBearer,
-  getSupabaseAdmin,
+  BodyTooLargeError,
 } from "../_lib/http";
 import { appUrl, getStripe, proPriceId } from "../_lib/stripe";
 
 export default async function handler(req: any, res: any) {
   if (handleOptions(req, res)) return;
-  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" });
+  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" }, req);
 
   try {
     const auth = await userFromBearer(req.headers.authorization || req.headers.Authorization);
-    if (!auth) return sendJson(res, 401, { error: "Sign in to subscribe." });
+    if (!auth) return sendJson(res, 401, { error: "Sign in to subscribe." }, req);
 
     const body = await readJsonBody(req);
     const plan = String(body.plan || "pro");
-    if (plan !== "pro") return sendJson(res, 400, { error: "Only Pro checkout is available." });
+    if (plan !== "pro") return sendJson(res, 400, { error: "Only Pro checkout is available." }, req);
 
     const stripe = getStripe();
     const admin = auth.admin;
@@ -56,12 +56,20 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    return sendJson(res, 200, { url: session.url, id: session.id });
+    return sendJson(res, 200, { url: session.url, id: session.id }, req);
   } catch (e: any) {
+    if (e instanceof BodyTooLargeError) {
+      return sendJson(res, 413, { error: e.message }, req);
+    }
     console.error("[stripe/checkout]", e);
-    return sendJson(res, 500, {
-      error: e.message || "Checkout failed",
-      hint: "Set STRIPE_SECRET_KEY, STRIPE_PRICE_PRO, SUPABASE_SERVICE_ROLE_KEY",
-    });
+    return sendJson(
+      res,
+      500,
+      {
+        error: e.message || "Checkout failed",
+        hint: "Set STRIPE_SECRET_KEY, STRIPE_PRICE_PRO, SUPABASE_SERVICE_ROLE_KEY",
+      },
+      req
+    );
   }
 }

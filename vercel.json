@@ -1,4 +1,20 @@
 {
+  "functions": {
+    "api/ai/*.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/claude.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/admin/*.ts": {
+      "maxDuration": 30
+    },
+    "api/stripe/*.ts": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/vendor/(.*)", "destination": "/vendor/$1" },

@@ -10,6 +10,16 @@ function localApiPlugin(): Plugin {
     "/api/stripe/webhook": "/api/stripe/webhook.ts",
     "/api/ai/gemini": "/api/ai/gemini.ts",
     "/api/ai/generate": "/api/ai/generate.ts",
+    "/api/admin/stats": "/api/admin/stats.ts",
+    "/api/admin/user": "/api/admin/user.ts",
+    "/api/admin/users": "/api/admin/users.ts",
+    "/api/admin/projects": "/api/admin/projects.ts",
+    "/api/admin/activity": "/api/admin/activity.ts",
+    "/api/admin/health": "/api/admin/health.ts",
+    "/api/admin/stripe-sync": "/api/admin/stripe-sync.ts",
+    "/api/admin/project": "/api/admin/project.ts",
+    "/api/admin/credits": "/api/admin/credits.ts",
+    "/api/admin/login": "/api/admin/login.ts",
   };
 
   return {

@@ -1,13 +1,17 @@
-import { handleOptions, sendJson, userFromBearer } from "../_lib/http";
+import {
+  handleOptions,
+  sendJson,
+  userFromBearer,
+} from "../_lib/http";
 import { appUrl, getStripe } from "../_lib/stripe";
 
 export default async function handler(req: any, res: any) {
   if (handleOptions(req, res)) return;
-  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" });
+  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" }, req);
 
   try {
     const auth = await userFromBearer(req.headers.authorization || req.headers.Authorization);
-    if (!auth) return sendJson(res, 401, { error: "Sign in required." });
+    if (!auth) return sendJson(res, 401, { error: "Sign in required." }, req);
 
     const { data: profile } = await auth.admin
       .from("profiles")
@@ -16,9 +20,12 @@ export default async function handler(req: any, res: any) {
       .maybeSingle();
 
     if (!profile?.stripe_customer_id) {
-      return sendJson(res, 400, {
-        error: "No Stripe customer yet. Subscribe to Pro first.",
-      });
+      return sendJson(
+        res,
+        400,
+        { error: "No Stripe customer yet. Subscribe to Pro first." },
+        req
+      );
     }
 
     const stripe = getStripe();
@@ -27,9 +34,9 @@ export default async function handler(req: any, res: any) {
       return_url: `${appUrl()}/app/settings/billing`,
     });
 
-    return sendJson(res, 200, { url: portal.url });
+    return sendJson(res, 200, { url: portal.url }, req);
   } catch (e: any) {
     console.error("[stripe/portal]", e);
-    return sendJson(res, 500, { error: e.message || "Portal failed" });
+    return sendJson(res, 500, { error: e.message || "Portal failed" }, req);
   }
 }

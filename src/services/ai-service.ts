@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import {
   buildUserContent,
   buildPlanPrompt,
+  buildTalkPrompt,
   extractCompletedFilesFromPartialJson,
   type GenerationOptions,
 } from "@/lib/generation-prompt";
@@ -14,6 +15,8 @@ import {
   type ChatAttachment,
 } from "@/lib/attachments";
 import { classifyBuildScale } from "@/lib/complexity";
+import { parseModelJson } from "@/lib/parse-model-json";
+import { agentProgressMessage } from "@/lib/agent-identity";
 
 const getActiveProvider = () =>
   (typeof window !== "undefined"
@@ -58,16 +61,7 @@ const STORAGE_KEYS: Record<string, string> = {
   deepseek: "shipkernel_deepseek_key",
 };
 
-const ENV_KEYS: Record<string, string | undefined> = {
-  openai: import.meta.env.VITE_OPENAI_API_KEY,
-  auto: import.meta.env.VITE_OPENAI_API_KEY,
-  gemini: import.meta.env.VITE_GEMINI_API_KEY,
-  grok: import.meta.env.VITE_GROK_API_KEY,
-  claude: import.meta.env.VITE_CLAUDE_API_KEY,
-  deepseek: import.meta.env.VITE_DEEPSEEK_API_KEY,
-};
-
-/** User-pasted BYOK only (localStorage). Env keys are for local/dev — not unlimited platform bypass. */
+/** User-pasted BYOK only (localStorage). Platform keys live server-side — never VITE_*. */
 export function getByokKey(provider?: string): string {
   if (typeof window === "undefined") return "";
   const id = provider || getActiveProvider();
@@ -107,12 +101,9 @@ function normalizeKey(raw: string): string {
     .replace(/[^\x20-\x7E]/g, "");
 }
 
+/** BYOK only — platform secrets must never ship in the browser bundle. */
 export const getApiKey = (provider: string): string => {
-  const byok = getByokKey(provider);
-  if (byok) return byok;
-  const fromEnv = ENV_KEYS[provider];
-  if (fromEnv) return normalizeKey(String(fromEnv));
-  return "";
+  return getByokKey(provider);
 };
 
 /** Preferred chat models (first match wins after live list probe) */
@@ -186,7 +177,7 @@ function friendlyProviderError(provider: string, error: unknown): Error {
   if (/401|invalid authentication|API[_ ]?key|unauthenticated|PERMISSION_DENIED|ACCESS_TOKEN/i.test(raw)) {
     if (provider === "gemini") {
       return new Error(
-        "Gemini rejected this API key (401). Paste your AI Studio key (AIza… or AQ.…) in Settings, set provider to Gemini, and retry. Env: VITE_GEMINI_API_KEY + restart."
+        "Gemini rejected this API key (401). Paste your AI Studio key in Settings → API Keys, set provider to Gemini, and retry — or use platform credits while signed in."
       );
     }
     return new Error(
@@ -228,6 +219,11 @@ export interface GenerationResponse {
   questions?: { id?: string; prompt?: string; question?: string; options?: string[] }[];
   risks?: string[];
   scale?: string;
+  mood?: string;
+  narration?: string;
+  explanation?: string;
+  /** Talk-mode only */
+  reply?: string;
 }
 
 export type GenerationProgressEvent =
@@ -245,39 +241,13 @@ export type ProbeResult = {
 };
 
 export function parseJsonResponse(text: string): GenerationResponse {
-  let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  const { data, recovered, note } = parseModelJson(text);
+  const response = normalizeResponse(data);
+  if (recovered) {
+    const suffix = note || "Partial JSON — applied complete files only.";
+    response.thought = [response.thought, suffix].filter(Boolean).join(" ");
   }
-
-  try {
-    return normalizeResponse(JSON.parse(cleaned));
-  } catch {
-    const start = cleaned.indexOf("{");
-    if (start === -1) throw new Error("Model did not return JSON.");
-
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < cleaned.length; i++) {
-      const ch = cleaned[i];
-      if (inString) {
-        if (escape) escape = false;
-        else if (ch === "\\") escape = true;
-        else if (ch === '"') inString = false;
-        continue;
-      }
-      if (ch === '"') inString = true;
-      else if (ch === "{") depth++;
-      else if (ch === "}") {
-        depth--;
-        if (depth === 0) {
-          return normalizeResponse(JSON.parse(cleaned.slice(start, i + 1)));
-        }
-      }
-    }
-    throw new Error("Could not parse model JSON response.");
-  }
+  return response;
 }
 
 function normalizeResponse(data: any): GenerationResponse {
@@ -320,21 +290,41 @@ function normalizeResponse(data: any): GenerationResponse {
     questions: Array.isArray(data.questions) ? data.questions : undefined,
     risks: Array.isArray(data.risks) ? data.risks.map(String) : undefined,
     scale: typeof data.scale === "string" ? data.scale : undefined,
+    mood: typeof data.mood === "string" ? data.mood : undefined,
+    narration: typeof data.narration === "string" ? data.narration : undefined,
+    explanation: typeof data.explanation === "string" ? data.explanation : undefined,
+    reply: typeof data.reply === "string" ? data.reply : undefined,
   };
 }
 
 function extractPartialThought(buffer: string): string | null {
-  const m = buffer.match(/"thought"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-  if (!m) return null;
+  // Prefer a fully closed JSON string
+  const complete = buffer.match(/"thought"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (complete) {
+    try {
+      return JSON.parse(`"${complete[1]}"`);
+    } catch {
+      return complete[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+    }
+  }
+  // Incomplete — model is still writing the thought field (Cursor-style drip)
+  const open = buffer.match(/"thought"\s*:\s*"((?:[^"\\]|\\.)*)/);
+  if (!open) return null;
+  const raw = open[1];
   try {
-    return JSON.parse(`"${m[1]}"`);
+    return JSON.parse(`"${raw}"`);
   } catch {
-    return m[1];
+    return raw
+      .replace(/\\n/g, "\n")
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, "\\")
+      .replace(/\\t/g, "\t");
   }
 }
 
 function createStreamTracker(onProgress?: (e: GenerationProgressEvent) => void) {
   let buffer = "";
+  let lastThought = "";
   const emitted = new Set<string>();
 
   return {
@@ -343,7 +333,11 @@ function createStreamTracker(onProgress?: (e: GenerationProgressEvent) => void) 
       buffer += piece;
       onProgress?.({ type: "token", text: piece });
       const thought = extractPartialThought(buffer);
-      if (thought) onProgress?.({ type: "thought", text: thought });
+      // Only emit when thought grows — avoids identical spam every token
+      if (thought && thought.length > lastThought.length) {
+        lastThought = thought;
+        onProgress?.({ type: "thought", text: thought });
+      }
 
       const partialFiles = extractCompletedFilesFromPartialJson(buffer);
       for (const file of partialFiles) {
@@ -606,15 +600,31 @@ async function generateWithClaude(
   apiKey: string,
   system: string,
   userContent: string,
-  onProgress?: (e: GenerationProgressEvent) => void
+  onProgress?: (e: GenerationProgressEvent) => void,
+  attachments: ChatAttachment[] = []
 ): Promise<{ response: GenerationResponse; emitted: Set<string> }> {
   const cached = getCachedModel("claude");
   const candidates = candidateModels(PREFERRED_MODELS.claude, cached ? [cached] : []).slice(0, 5);
   let lastError: unknown = null;
   const tracker = createStreamTracker(onProgress);
 
+  const contentBlocks: Array<Record<string, unknown>> = [{ type: "text", text: userContent }];
+  for (const a of attachments) {
+    if (a.kind !== "image" || !a.dataUrl?.startsWith("data:")) continue;
+    const inline = dataUrlToInline(a.dataUrl);
+    if (!inline) continue;
+    contentBlocks.push({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: inline.mimeType,
+        data: inline.data,
+      },
+    });
+  }
+
   for (const model of candidates) {
-    onProgress?.({ type: "status", message: `Claude (${model})…` });
+    onProgress?.({ type: "status", message: agentProgressMessage("thinking") });
     try {
       const res = await resilientFetch("/api/claude", {
         method: "POST",
@@ -626,7 +636,7 @@ async function generateWithClaude(
           model,
           max_tokens: 8192,
           system,
-          messages: [{ role: "user", content: userContent }],
+          messages: [{ role: "user", content: contentBlocks }],
         }),
         retries: 3,
         timeoutMs: 120000,
@@ -674,12 +684,12 @@ async function generateWithGemini(
   const cleanKey = normalizeKey(apiKey);
   if (!cleanKey) {
     throw new Error(
-      "Missing Gemini API key. Add VITE_GEMINI_API_KEY to .env (restart) or paste it in Settings."
+      "Missing Gemini API key. Paste it in Settings → API Keys, or sign in to use platform credits."
     );
   }
 
   let model = await resolveGeminiModel(cleanKey);
-  onProgress?.({ type: "status", message: `Gemini (${model})…` });
+  onProgress?.({ type: "status", message: agentProgressMessage("thinking") });
   const tracker = createStreamTracker(onProgress);
 
   const parts: any[] = [{ text: `${system}\n\n${userContent}` }];
@@ -778,7 +788,7 @@ async function generateWithGemini(
     if (/no longer available|NOT_FOUND|404/i.test(String(error?.message || ""))) {
       onProgress?.({ type: "status", message: "Refreshing Gemini models…" });
       model = await resolveGeminiModel(cleanKey, true);
-      onProgress?.({ type: "status", message: `Gemini (${model})…` });
+      onProgress?.({ type: "status", message: agentProgressMessage("thinking") });
       return await tryOnce(model);
     }
     throw error;
@@ -830,7 +840,7 @@ async function generateWithOpenAICompatible(
       : { role: "user", content: userContent };
 
   for (const model of candidates) {
-    onProgress?.({ type: "status", message: `${id} (${model})…` });
+    onProgress?.({ type: "status", message: agentProgressMessage("thinking") });
     const tracker = createStreamTracker(onProgress);
     let attempt = 0;
     while (attempt < 3) {
@@ -939,7 +949,7 @@ export const generateArchitectureStream = async (
   }
 
   if (usePlatform) {
-    onProgress?.({ type: "status", message: "Using platform credits…" });
+    onProgress?.({ type: "status", message: agentProgressMessage("using platform credits") });
   }
 
   const slot = STORAGE_KEYS[activeProvider];
@@ -961,6 +971,13 @@ export const generateArchitectureStream = async (
     wave: options?.wave,
     targetPaths: options?.targetPaths,
     scale,
+    workspacePurpose: options?.workspacePurpose,
+    conversationContext: options?.conversationContext,
+    terminalDigest: options?.terminalDigest,
+    workspaceMemory: options?.workspaceMemory,
+    priorFixNote: options?.priorFixNote,
+    fixAttempt: options?.fixAttempt,
+    diagnosis: options?.diagnosis,
   });
 
   const waveLabel =
@@ -1001,7 +1018,7 @@ export const generateArchitectureStream = async (
     if (usePlatform) {
       packed = await generateWithPlatformGemini(system, userContent, onProgress, creative, attachments);
     } else if (activeProvider === "claude") {
-      packed = await generateWithClaude(apiKey, system, userContent, onProgress);
+      packed = await generateWithClaude(apiKey, system, userContent, onProgress, attachments);
     } else if (activeProvider === "gemini") {
       packed = await generateWithGemini(
         apiKey,
@@ -1047,7 +1064,7 @@ async function generateWithPlatformGemini(
     throw new Error("Sign in to use your free platform prompts, or add your own API key (BYOK).");
   }
 
-  onProgress?.({ type: "status", message: "Platform Gemini…" });
+  onProgress?.({ type: "status", message: agentProgressMessage("thinking") });
   const tracker = createStreamTracker(onProgress);
 
   const inlineImages = attachments
@@ -1083,10 +1100,30 @@ async function generateWithPlatformGemini(
   }
 
   const text = String(data.text || "");
+  // Platform path is buffered server-side — drip the thought locally so the UI
+  // doesn't sit blank then dump everything at once.
+  const thoughtMatch = text.match(/"thought"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (thoughtMatch) {
+    let decoded = thoughtMatch[1];
+    try {
+      decoded = JSON.parse(`"${thoughtMatch[1]}"`);
+    } catch {
+      decoded = thoughtMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+    }
+    const step = Math.max(12, Math.ceil(decoded.length / 24));
+    for (let i = step; i < decoded.length; i += step) {
+      onProgress?.({ type: "thought", text: decoded.slice(0, i) });
+      await new Promise((r) => setTimeout(r, 16));
+    }
+    onProgress?.({ type: "thought", text: decoded });
+  }
   tracker.push(text);
   onProgress?.({
     type: "status",
-    message: data.remaining != null ? `Platform credit used · ${data.remaining} left` : "Platform reply ready",
+    message:
+      data.remaining != null
+        ? agentProgressMessage(`${data.remaining} platform credits left`)
+        : agentProgressMessage("reply ready"),
   });
   return { response: parseJsonResponse(text), emitted: tracker.emitted };
 }
@@ -1152,7 +1189,7 @@ export const generateBuildPlan = async (
     if (usePlatform) {
       packed = await generateWithPlatformGemini(system, userContent, onProgress, creative, attachments);
     } else if (activeProvider === "claude") {
-      packed = await generateWithClaude(apiKey, system, userContent, onProgress);
+      packed = await generateWithClaude(apiKey, system, userContent, onProgress, attachments);
     } else if (activeProvider === "gemini") {
       packed = await generateWithGemini(
         apiKey,
@@ -1191,5 +1228,118 @@ export const generateBuildPlan = async (
   );
   onProgress?.({ type: "thought", text: plan.summary });
   return plan;
+};
+
+export type TalkReply = { reply: string; mood?: string; thought?: string };
+
+/** Talk mode — conversational answer, never emits files. */
+export const generateTalkReply = async (
+  prompt: string,
+  vfs: Record<string, string>,
+  onProgress?: (e: GenerationProgressEvent) => void,
+  options?: GenerationOptions
+): Promise<TalkReply> => {
+  const activeProvider = getActiveProvider();
+  const byokKey = getByokKey(activeProvider);
+  const envOrByok = getApiKey(activeProvider);
+
+  let usePlatform = false;
+  if (byokKey) {
+    usePlatform = false;
+  } else if (typeof window !== "undefined") {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    usePlatform = Boolean(session?.access_token);
+    if (!usePlatform && !envOrByok) {
+      throw new Error(
+        "Sign in to use platform credits, or add your own API key under Settings (BYOK)."
+      );
+    }
+  }
+
+  const apiKey = byokKey || (!usePlatform ? envOrByok : "");
+  if (!usePlatform && !apiKey) {
+    const meta = PROVIDER_META[activeProvider];
+    throw new Error(
+      `Missing ${meta?.label || activeProvider} API key. Add it under Settings → API Keys.`
+    );
+  }
+
+  const attachments = options?.attachments || [];
+  const attachmentNote = options?.attachmentNote || attachmentPromptBlock(attachments);
+
+  const { system, userContent } = buildTalkPrompt(prompt, vfs, {
+    projectName: options?.projectName,
+    workspacePurpose: options?.workspacePurpose,
+    conversationContext: options?.conversationContext,
+    terminalDigest: options?.terminalDigest,
+    workspaceMemory: options?.workspaceMemory,
+    discovery: options?.discovery,
+    attachmentNote,
+    attachments,
+  });
+
+  if (attachments.length) {
+    onProgress?.({
+      type: "status",
+      message: `Reading ${attachments.length} attachment${attachments.length === 1 ? "" : "s"}…`,
+    });
+  }
+
+  onProgress?.({
+    type: "status",
+    message: options?.discovery
+      ? "Figuring out what you want (no plan/build yet)…"
+      : "Thinking (Talk — no file writes)…",
+  });
+
+  let packed: { response: GenerationResponse; emitted: Set<string> };
+  try {
+    if (usePlatform) {
+      packed = await generateWithPlatformGemini(
+        system,
+        userContent,
+        onProgress,
+        false,
+        attachments
+      );
+    } else if (activeProvider === "claude") {
+      packed = await generateWithClaude(apiKey, system, userContent, onProgress, attachments);
+    } else if (activeProvider === "gemini") {
+      packed = await generateWithGemini(
+        apiKey,
+        system,
+        userContent,
+        onProgress,
+        false,
+        attachments
+      );
+    } else {
+      packed = await generateWithOpenAICompatible(
+        activeProvider,
+        apiKey,
+        system,
+        userContent,
+        onProgress,
+        false,
+        attachments
+      );
+    }
+  } catch (error) {
+    throw friendlyProviderError(usePlatform ? "gemini" : activeProvider, error);
+  }
+
+  const r = packed.response as GenerationResponse & { reply?: string };
+  const reply =
+    (typeof r.reply === "string" && r.reply.trim()) ||
+    r.explanation?.trim() ||
+    r.narration?.trim() ||
+    r.thought?.trim() ||
+    "I’m here — ask me anything about the project. Switch to Build when you want file changes.";
+
+  if (r.thought) onProgress?.({ type: "thought", text: r.thought });
+  return { reply, mood: r.mood, thought: r.thought };
 };
 

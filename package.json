@@ -11,12 +11,14 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:fixes": "vitest run src/test/fix-roadmap-smoke.test.ts",
     "test:watch": "vitest",
     "validate:templates": "tsx scripts/validate-templates.ts",
     "smoke:templates": "tsx scripts/smoke-templates.ts"
   },
   "dependencies": {
     "@babel/standalone": "^7.29.1",
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

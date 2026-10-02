@@ -13,6 +13,10 @@ export type LocalProject = {
   prompt: string;
   vfs_files: Record<string, string>;
   code: string;
+  /** Builder chat transcript (rehydrated on reopen) */
+  chat_messages?: unknown[];
+  preview_supabase_url?: string;
+  preview_supabase_anon_key?: string;
   created_at: string;
   user_id: string;
 };

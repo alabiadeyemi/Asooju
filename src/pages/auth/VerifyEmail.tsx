@@ -1,15 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AlertCircle, ArrowLeft, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+
+/** Supabase often sends 8-digit OTPs (sometimes 6) */
+const OTP_MIN = 6;
+const OTP_MAX = 8;
 
 export default function VerifyEmail() {
   const { verifyEmailCode, resendEmailCode, getPendingVerifyEmail, user, mustOnboard } =
@@ -22,6 +21,8 @@ export default function VerifyEmail() {
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const submittedRef = useRef("");
 
   useEffect(() => {
     const fromQuery = params.get("email") || "";
@@ -29,7 +30,6 @@ export default function VerifyEmail() {
     setEmail((fromQuery || pending || "").trim().toLowerCase());
   }, [params, getPendingVerifyEmail]);
 
-  // Already signed in → skip to onboarding or app
   useEffect(() => {
     if (user && !(user as any).app_metadata?.isGuest) {
       navigate(mustOnboard ? "/auth/onboarding" : "/app", { replace: true });
@@ -42,12 +42,18 @@ export default function VerifyEmail() {
     return () => window.clearTimeout(t);
   }, [cooldown]);
 
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
   const submit = async (value?: string) => {
-    const token = (value ?? code).replace(/\s/g, "");
-    if (!email || token.length < 6) {
-      setError("Enter the 6-digit code from your email.");
+    const token = (value ?? code).replace(/\D/g, "");
+    if (!email || token.length < OTP_MIN) {
+      setError(`Enter the full code from your email (${OTP_MIN}–${OTP_MAX} digits).`);
       return;
     }
+    if (submittedRef.current === token && isLoading) return;
+    submittedRef.current = token;
     setIsLoading(true);
     setError(null);
     try {
@@ -56,6 +62,8 @@ export default function VerifyEmail() {
     } catch (e: any) {
       setError(e?.message || "That code didn’t work. Try again or resend.");
       setCode("");
+      submittedRef.current = "";
+      inputRef.current?.focus();
     } finally {
       setIsLoading(false);
     }
@@ -100,35 +108,35 @@ export default function VerifyEmail() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight mb-2">Enter your code</h1>
           <p className="text-sm text-white/45 leading-relaxed mb-1">
-            We sent a 6-digit verification code to
+            Paste the full code from your email (usually 8 digits)
           </p>
           <p className="text-sm font-medium text-white/80 mb-8 break-all">
             {email || "your email"}
           </p>
 
-          <div className="flex justify-center mb-6">
-            <InputOTP
-              maxLength={6}
-              value={code}
-              onChange={(v) => {
-                setCode(v);
-                setError(null);
-                if (v.length === 6) void submit(v);
-              }}
-              disabled={isLoading}
-              containerClassName="gap-2"
-            >
-              <InputOTPGroup className="gap-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <InputOTPSlot
-                    key={i}
-                    index={i}
-                    className="h-12 w-10 rounded-lg border border-white/10 bg-white/[0.04] text-lg font-mono first:rounded-lg first:border-l last:rounded-lg"
-                  />
-                ))}
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={OTP_MAX}
+            value={code}
+            disabled={isLoading}
+            placeholder="Paste code e.g. 66833223"
+            onChange={(e) => {
+              const next = e.target.value.replace(/\D/g, "").slice(0, OTP_MAX);
+              setCode(next);
+              setError(null);
+              if (next.length === OTP_MAX) void submit(next);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void submit();
+              }
+            }}
+            className="mb-6 flex h-14 w-full rounded-xl border border-white/15 bg-white/[0.06] px-4 text-center text-2xl tracking-[0.35em] font-mono text-white placeholder:text-white/25 placeholder:tracking-normal placeholder:text-sm outline-none focus:border-white/35 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+          />
 
           {error && (
             <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-left text-xs text-red-200/90">
@@ -139,7 +147,7 @@ export default function VerifyEmail() {
 
           <Button
             type="button"
-            disabled={isLoading || code.length < 6}
+            disabled={isLoading || code.length < OTP_MIN}
             onClick={() => void submit()}
             className="w-full h-11 rounded-xl bg-white text-black hover:bg-white/90 font-semibold"
           >
@@ -167,7 +175,7 @@ export default function VerifyEmail() {
         </div>
 
         <p className="mt-6 text-center text-[11px] text-white/30">
-          Use the code from the email — confirmation links are not used.
+          Example: paste <span className="font-mono text-white/45">66833223</span> — all digits.
         </p>
       </motion.div>
     </div>

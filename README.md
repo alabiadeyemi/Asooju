@@ -86,21 +86,64 @@ cd shipkernel
 npm install
 ```
 
-Copy env vars and run the Supabase schema — see [`supabase/SETUP.md`](supabase/SETUP.md).
+Copy env vars and run the Supabase schema — see [`supabase/SETUP.md`](supabase/SETUP.md) and [`.env.example`](.env.example).
 
 ```bash
+cp .env.example .env   # fill VITE_SUPABASE_* and server keys as needed
 npm run dev
 ```
 
-**Admin:** not in the sidebar. Open `/admin` only if your email is in `VITE_ADMIN_EMAILS` or your user has `app_metadata.role = "admin"`.
+**Admin:** not in the sidebar. Open `/admin` only if your user has `app_metadata.role = "admin"`.
 
 **AI:** add provider keys in Settings (BYOK, stored in the browser). Multifile generation writes to `vfs_files` and previews in the sandbox.
+
+### Builder preview vs build verify (important on Vercel)
+
+The builder has **two different preview paths**:
+
+| What | Default | Purpose |
+|------|---------|--------|
+| **On-screen preview** | **Draft** (iframe sandbox) | Stable default. Toggle **Live** for Sandpack / export-shaped bundler (matches GitHub/ZIP). |
+| **Build / auto-fix gate** | **Draft** iframe verify by default | Agent **auto-continues** waves only when verify is “live”. Set `VITE_BUILD_VERIFY_BUNDLER=1` to verify via export Sandpack while UI stays **Draft**. |
+
+To align **wave verify** with **export/GitHub** (Sandpack on `prepareExportBundle`) **without** changing the default iframe UI, set:
+
+```bash
+VITE_BUILD_VERIFY_BUNDLER=1
+```
+
+**On Vercel (ShipKernel app itself):**
+
+1. [Vercel Dashboard](https://vercel.com) → your **ShipKernel** project → **Settings** → **Environment Variables**
+2. Add **`VITE_BUILD_VERIFY_BUNDLER`** = **`1`** for **Production** (and **Preview** if you use preview deployments)
+3. **Redeploy** (env vars are baked in at build time for Vite)
+
+**Local:**
+
+```bash
+# in .env
+VITE_BUILD_VERIFY_BUNDLER=1
+```
+
+Restart `npm run dev` after changing `.env`.
+
+**Force Live bundler UI:** `VITE_PREVIEW_V2=1` in env, or choose **Live** in the preview panel (saved in browser).
+
+**Smoke check after enabling verify bundler**
+
+1. Open a project → **Build** mode → prompt that triggers **standard** (2-wave) scale, e.g. dashboard + auth + Supabase.
+2. Leave **Bundler** toggle **off** (iframe stays visible).
+3. Let wave 1 finish: if preview verify fails, the agent should **not** auto-start wave 2 (broken preview).
+4. Fix or adjust until wave 1 verify passes; wave 2 should auto-continue only when bundler verify reports **live**.
+5. Terminal may show `PREVIEW (bundler): …` on compile errors.
+
+More detail: [`docs/DISCOVERED_ISSUES.md`](docs/DISCOVERED_ISSUES.md) (quick verify table) · [`HOW_TO_RUN.md`](HOW_TO_RUN.md)
 
 ---
 
 ##  Security & Sovereignty
 
-- **Data Privacy**: ShipKernel never stores your raw API keys on its own servers if using BYOK; they are stored locally with encrypted browser persistence.
+- **Data Privacy**: ShipKernel never stores your raw BYOK API keys on its servers; they stay in your browser on that device and are sent only when needed for generation. Do not use BYOK on a shared or untrusted device.
 - **Code Ownership**: You own 100% of the generated source code. Always.
 - **Foundry Standards**: Built to follow SOC2-ready patterns for enterprise-ready software.
 
