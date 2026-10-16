@@ -3,8 +3,8 @@ import { supabase, clearBrokenAuthSession } from "@/integrations/supabase/client
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
-const GUEST_STORAGE_KEY = "shipkernel_mock_user";
-const PENDING_VERIFY_KEY = "shipkernel_pending_verify";
+const GUEST_STORAGE_KEY = "asooju_mock_user";
+const PENDING_VERIFY_KEY = "asooju_pending_verify";
 
 function friendlyAuthError(error: any, fallback: string): string {
   const raw = String(error?.message || error?.msg || fallback);

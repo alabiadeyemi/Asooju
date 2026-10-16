@@ -524,7 +524,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   const [expandedPasteId, setExpandedPasteId] = useState<string | null>(null);
   const pasteSerialRef = useRef(0);
   const [suggestionsOn, setSuggestionsOn] = useState(
-    () => localStorage.getItem("shipkernel_chat_suggestions") !== "0"
+    () => localStorage.getItem("asooju_chat_suggestions") !== "0"
   );
 
   useEffect(() => {
@@ -541,7 +541,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   }, [chatInput]);
 
   useEffect(() => {
-    localStorage.setItem("shipkernel_chat_suggestions", suggestionsOn ? "1" : "0");
+    localStorage.setItem("asooju_chat_suggestions", suggestionsOn ? "1" : "0");
   }, [suggestionsOn]);
 
   const suggestions = useMemo(() => {
@@ -739,7 +739,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                       ? "Plan"
                       : m.meta?.kind === "checkpoint"
                         ? "Checkpoint"
-                        : "ShipKernel AI"}
+                        : "Asooju AI"}
                 </span>
               )}
               <div

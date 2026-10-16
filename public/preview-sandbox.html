@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ShipKernel Preview</title>
+  <title>Asooju Preview</title>
   <!-- Locally vendored runtimes (no CDN fragility) -->
   <script src="/vendor/react.production.min.js"></script>
   <script src="/vendor/react-dom.production.min.js"></script>
@@ -14,6 +14,7 @@
   <script src="/vendor/supabase.js"></script>
   <script src="/vendor/framer-motion.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three r160 UMD is injected only when a workspace file imports "three" (see loadThree). -->
   <!-- Icons optional; LucideReact stubs if CDN blocked -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js" onerror="console.warn('lucide CDN skipped')"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -106,7 +107,7 @@
       );
 
       const rr = getRouterLib();
-      window.__ShipKernelRouter = rr;
+      window.__AsoojuRouter = rr;
       if (!rr.MemoryRouter && !rr.HashRouter) {
         console.warn("[Preview] react-router-dom UMD missing router components");
       }
@@ -327,9 +328,22 @@
         if (path === "react-dom" || path === "react-dom/client") return window.ReactDOM;
         if (path === "lucide-react") return window.LucideReact;
         if (path === "framer-motion") return window.framerMotion || window.Motion || {};
-        if (path === "react-router-dom") return window.__ShipKernelRouter || getRouterLib();
-        if (path === "react-router") return window.__ShipKernelRouter || getRouterLib();
+        if (path === "react-router-dom") return window.__AsoojuRouter || getRouterLib();
+        if (path === "react-router") return window.__AsoojuRouter || getRouterLib();
         if (path === "@supabase/supabase-js") return window._supabase_lib;
+        if (path === "three" || (typeof path === "string" && path.indexOf("three/") === 0)) {
+          if (path !== "three") {
+            throw new Error(
+              'Preview only supports import ... from "three". Remove the "' +
+                path +
+                '" import (no examples, addons, or extra 3D packages).'
+            );
+          }
+          if (!window.THREE || !window.THREE.WebGLRenderer) {
+            throw new Error("Three.js runtime is not loaded yet.");
+          }
+          return window.THREE;
+        }
         if (path === "sonner") {
           const toast = Object.assign((m) => console.log("[Toast]", m), {
             success: (m) => console.log("[Toast Success]", m),
@@ -506,7 +520,42 @@
       }
     }
 
-    function applyPayload(data) {
+    function vfsImportsThree(files) {
+      const re = /(?:import\s+[^'";]*from\s*|require\s*\(\s*|import\s*\(\s*)['"]three['"]/;
+      const names = Object.keys(files || {});
+      for (let i = 0; i < names.length; i++) {
+        const name = names[i];
+        if (!/\.(tsx?|jsx?|mjs|cjs)$/i.test(name)) continue;
+        const content = files[name];
+        if (typeof content === "string" && re.test(content)) return true;
+      }
+      return false;
+    }
+
+    let threePromise = null;
+    function loadThree() {
+      if (window.THREE && window.THREE.WebGLRenderer) return Promise.resolve();
+      if (threePromise) return threePromise;
+      threePromise = new Promise(function (resolve, reject) {
+        const s = document.createElement("script");
+        s.src = "/vendor/three.min.js";
+        s.async = true;
+        s.onload = function () {
+          if (window.THREE && window.THREE.WebGLRenderer) resolve();
+          else reject(new Error("Three.js loaded but WebGLRenderer is missing."));
+        };
+        s.onerror = function () {
+          threePromise = null;
+          reject(new Error("Failed to load the local Three.js runtime."));
+        };
+        document.head.appendChild(s);
+      });
+      return threePromise;
+    }
+
+    let payloadToken = 0;
+    async function applyPayload(data) {
+      const token = ++payloadToken;
       if (!data) return;
       if (data.supabaseUrl) window._SUPABASE_URL = data.supabaseUrl;
       if (data.supabaseKey) window._SUPABASE_KEY = data.supabaseKey;
@@ -515,10 +564,21 @@
         showError(new Error("Preview expects a multifile VFS payload."));
         return;
       }
-      vfs = data.files;
+      const files = data.files;
+      if (vfsImportsThree(files)) {
+        try {
+          await loadThree();
+        } catch (err) {
+          if (token !== payloadToken) return;
+          showError(err);
+          return;
+        }
+      }
+      if (token !== payloadToken) return;
+      vfs = files;
       lastEntry =
         data.entryPoint ||
-        (data.files["App.tsx"] ? "App.tsx" : Object.keys(data.files)[0]);
+        (files["App.tsx"] ? "App.tsx" : Object.keys(files)[0]);
       renderVFS(lastEntry, { soft: !!data.soft });
     }
 
@@ -542,7 +602,7 @@
       }
 
       try {
-        const stored = localStorage.getItem("shipkernel_preview_data");
+        const stored = localStorage.getItem("asooju_preview_data");
         if (stored) {
           const data = JSON.parse(stored);
           if (data.files && Object.keys(data.files).length) {

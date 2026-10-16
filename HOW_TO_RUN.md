@@ -1,4 +1,4 @@
-# HOW TO RUN — ShipKernel
+# HOW TO RUN — Asooju
 
 Accurate local runbook for this repo (Vite + React + Supabase + optional Stripe / platform AI).
 
@@ -23,14 +23,14 @@ Optional later: Stripe CLI (billing webhooks), AI API keys (BYOK or platform).
 
 ```bash
 cd ~/Desktop   # or wherever you put the zip
-unzip shipkernel-YYYYMMDD-HHMMSS.zip -d shipkernel
-cd shipkernel
+unzip asooju-YYYYMMDD-HHMMSS.zip -d asooju
+cd asooju
 ```
 
 ### From git
 
 ```bash
-cd /path/to/shipkernel
+cd /path/to/asooju
 ```
 
 ---
@@ -125,13 +125,13 @@ If you skip these, **Guest mode** still works (projects in `localStorage` only).
 
 ## 5. Auth email = 6-digit code (not magic links)
 
-ShipKernel signup uses **OTP codes** at `/auth/verify`.
+Asooju signup uses **OTP codes** at `/auth/verify`.
 
 1. Supabase → **Authentication → Providers → Email** → enable email + **Confirm email**.
 2. **Authentication → Email Templates → Confirm signup** — use the **token**, not the link:
 
 ```html
-<h2>Your ShipKernel code</h2>
+<h2>Your Asooju code</h2>
 <p>Enter this code to verify your email:</p>
 <p style="font-size:24px;letter-spacing:6px;font-weight:700">{{ .Token }}</p>
 <p>This code expires soon. If you didn’t sign up, ignore this email.</p>
@@ -221,7 +221,7 @@ Put the printed `whsec_...` into `STRIPE_WEBHOOK_SECRET`, then restart `npm run 
 
 ## 10. Production (Vercel)
 
-ShipKernel is a Vite SPA + `api/*.ts` serverless functions.
+Asooju is a Vite SPA + `api/*.ts` serverless functions.
 
 ### Deploy steps
 1. Push the repo and import the project on Vercel (Framework Preset: Vite).
@@ -274,7 +274,7 @@ Local Vite mounts the same `api/*.ts` files for Stripe + AI proxies.
 ## 12. Minimal “just run it” checklist
 
 ```bash
-cd shipkernel
+cd asooju
 npm install
 # edit .env → at least VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY
 # (optional) run supabase/schema.sql + billing.sql

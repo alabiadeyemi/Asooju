@@ -1,5 +1,5 @@
-const KEY = "shipkernel_admin_token";
-const EMAIL_KEY = "shipkernel_admin_email";
+const KEY = "asooju_admin_token";
+const EMAIL_KEY = "asooju_admin_email";
 
 export function readAdminToken(): string | null {
   try {

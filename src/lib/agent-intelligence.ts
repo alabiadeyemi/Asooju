@@ -5,7 +5,7 @@
 import { classifyBuildScale, type BuildScale } from "./complexity";
 
 const KNOWN_PACKAGES =
-  /^(react|react-dom|react-router-dom|lucide-react|framer-motion|@supabase\/supabase-js|@\/lib\/supabase)$/;
+  /^(react|react-dom|react-router-dom|lucide-react|framer-motion|@supabase\/supabase-js|@\/lib\/supabase|three)$/;
 
 const ROUTER_OPEN =
   /<(MemoryRouter|BrowserRouter|HashRouter|Router)\b[^>]*>/g;

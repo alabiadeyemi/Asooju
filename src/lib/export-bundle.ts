@@ -143,7 +143,7 @@ function buildReadme(projectName: string, hasSchema: boolean): string {
   const lines = [
     `# ${projectName}`,
     "",
-    "App source exported from ShipKernel.",
+    "App source exported from Asooju.",
     "",
     "## Run locally",
     "",
@@ -261,7 +261,7 @@ export function prepareExportBundle(
   options: ExportBundleOptions = {}
 ): Record<string, string> {
   const out = { ...vfs };
-  const projectName = (options.projectName || "shipkernel-app").trim() || "shipkernel-app";
+  const projectName = (options.projectName || "asooju-app").trim() || "asooju-app";
   const envKeys = collectViteEnvKeys(out);
   const hasSchema = Boolean(out["supabase/schema.sql"]);
 

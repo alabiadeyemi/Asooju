@@ -39,7 +39,7 @@ export default function Terms() {
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               1. Acceptance of Terms
             </h2>
-            <p>By accessing or using ShipKernel, you agree to be bound by these Terms of Service. If you do not agree, do not use the service.</p>
+            <p>By accessing or using Asooju, you agree to be bound by these Terms of Service. If you do not agree, do not use the service.</p>
           </section>
 
           <section>
@@ -47,7 +47,7 @@ export default function Terms() {
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               2. Service Description
             </h2>
-            <p>ShipKernel provides AI-powered code generation tools. We generate code based on your prompts using third-party AI providers. Generated code is provided "as is" without warranty.</p>
+            <p>Asooju provides AI-powered code generation tools. We generate code based on your prompts using third-party AI providers. Generated code is provided "as is" without warranty.</p>
           </section>
 
           <section>
@@ -55,7 +55,7 @@ export default function Terms() {
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               3. Code Ownership
             </h2>
-            <p>You own all code generated through ShipKernel. We claim no intellectual property rights over your generated output. You are free to commit, ship, and monetize the results.</p>
+            <p>You own all code generated through Asooju. We claim no intellectual property rights over your generated output. You are free to commit, ship, and monetize the results.</p>
           </section>
 
           <section>

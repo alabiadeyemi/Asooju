@@ -20,7 +20,7 @@ import { agentProgressMessage } from "@/lib/agent-identity";
 
 const getActiveProvider = () =>
   (typeof window !== "undefined"
-    ? localStorage.getItem("shipkernel_active_provider")
+    ? localStorage.getItem("asooju_active_provider")
     : "openai") || "openai";
 
 export const PROVIDER_META: Record<
@@ -53,12 +53,12 @@ const PROVIDER_ALIASES: Record<string, string[]> = {
 };
 
 const STORAGE_KEYS: Record<string, string> = {
-  openai: "shipkernel_openai_key",
-  auto: "shipkernel_openai_key",
-  gemini: "shipkernel_gemini_key",
-  grok: "shipkernel_grok_key",
-  claude: "shipkernel_claude_key",
-  deepseek: "shipkernel_deepseek_key",
+  openai: "asooju_openai_key",
+  auto: "asooju_openai_key",
+  gemini: "asooju_gemini_key",
+  grok: "asooju_grok_key",
+  claude: "asooju_claude_key",
+  deepseek: "asooju_deepseek_key",
 };
 
 /** User-pasted BYOK only (localStorage). Platform keys live server-side — never VITE_*. */
@@ -75,7 +75,7 @@ export function getByokKey(provider?: string): string {
     }
   }
   try {
-    const keysJson = localStorage.getItem("shipkernel_keys");
+    const keysJson = localStorage.getItem("asooju_keys");
     if (keysJson) {
       const arr = JSON.parse(keysJson) as Array<{ provider?: string; key?: string; value?: string }>;
       for (const row of arr) {
@@ -139,7 +139,7 @@ const OPENAI_COMPAT: Record<string, { baseURL: string }> = {
 };
 
 function modelCacheKey(provider: string) {
-  return `shipkernel_resolved_model_${provider}`;
+  return `asooju_resolved_model_${provider}`;
 }
 
 function getCachedModel(provider: string): string | null {

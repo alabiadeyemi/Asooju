@@ -169,7 +169,7 @@ export default function Login() {
             </div>
 
             <p className="text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground/40 mt-6 transition-all">
-              New to ShipKernel?{" "}
+              New to Asooju?{" "}
               <Link to="/auth/signup" className="text-primary hover:text-primary/80 hover:underline transition-colors">
                 Create Account
               </Link>

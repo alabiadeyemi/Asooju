@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { projectSummary } from "@/lib/project-summary";
 import { toast } from "sonner";
 
 // Types for project
@@ -173,7 +174,7 @@ const Projects = () => {
                     </div>
 
                     <p className="text-sm text-muted-foreground/60 leading-relaxed mb-8 line-clamp-2">
-                      {project.prompt || "No architecture prompt available."}
+                      {projectSummary(project)}
                     </p>
 
                     <div className="pt-6 border-t border-white/5 flex items-center justify-between">
@@ -215,7 +216,7 @@ const Projects = () => {
                         </div>
                         <div>
                           <div className="text-[15px] font-bold text-white group-hover:text-primary transition-colors">{project.name}</div>
-                          <div className="text-xs text-muted-foreground/40 mt-1">{project.prompt?.slice(0, 45)}...</div>
+                          <div className="text-xs text-muted-foreground/40 mt-1">{projectSummary(project).slice(0, 72)}</div>
                         </div>
                       </Link>
                     </td>

@@ -7,11 +7,27 @@ const ENTERPRISE_HINTS =
 const STANDARD_HINTS =
   /\b(dashboard|auth|crud|database|supabase|backend|orders|inventory|checkout|payments|stripe|multi.?page|admin)\b/i;
 
+/**
+ * 3D / browser-game briefs need a second wave and larger files.
+ * Narrow on purpose: "three tiers" and "low-poly illustration" stay on the normal path.
+ */
+const SCENE_BUILD_HINTS =
+  /\b(webgl|three\.js|(?:low-?poly|mid-?poly|3d|browser|driving|racing) game)\b/i;
+
+export function isSceneBuild(prompt: string): boolean {
+  return SCENE_BUILD_HINTS.test(prompt);
+}
+
 export function classifyBuildScale(prompt: string, vfsFileCount = 0): BuildScale {
   if (ENTERPRISE_HINTS.test(prompt) || prompt.length > 2500 || vfsFileCount > 18) {
     return "enterprise";
   }
-  if (STANDARD_HINTS.test(prompt) || prompt.length > 600 || vfsFileCount > 8) {
+  if (
+    STANDARD_HINTS.test(prompt) ||
+    isSceneBuild(prompt) ||
+    prompt.length > 600 ||
+    vfsFileCount > 8
+  ) {
     return "standard";
   }
   return "simple";
@@ -24,10 +40,18 @@ export function purposeCharBudget(scale: BuildScale): number {
   return 2_500;
 }
 
+const DATA_HINTS =
+  /\b(auth|login|signup|database|supabase|postgres|orders?|products?|customers?|inventory|checkout|cart|payments?|crud|save|persist|backend|api|admin)\b/i;
+
 export function needsPersistentBackend(prompt: string): boolean {
-  return /\b(auth|login|signup|database|supabase|postgres|orders?|products?|customers?|inventory|checkout|cart|payments?|crud|save|persist|backend|api|admin)\b/i.test(
-    prompt
-  ) || classifyBuildScale(prompt) !== "simple";
+  if (DATA_HINTS.test(prompt)) return true;
+  // A short game brief is "standard" only so the scene can fit. That bump must not
+  // force Supabase onto a driving game. Data words above still opt in.
+  if (isSceneBuild(prompt)) {
+    const withoutScene = prompt.replace(SCENE_BUILD_HINTS, " ");
+    return classifyBuildScale(withoutScene) !== "simple";
+  }
+  return classifyBuildScale(prompt) !== "simple";
 }
 
 export function waveBudget(scale: BuildScale, vfsFileCount = 0) {

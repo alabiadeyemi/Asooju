@@ -53,7 +53,7 @@ export const Footer = () => (
       </div>
       <div className="mt-20 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
         <div className="flex gap-6">
-          <span>© {new Date().getFullYear()} ShipKernel Inc.</span>
+          <span>© {new Date().getFullYear()} Asooju Inc.</span>
           <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
           <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
         </div>

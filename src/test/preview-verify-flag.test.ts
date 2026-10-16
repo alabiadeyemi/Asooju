@@ -9,7 +9,7 @@ describe("preview verify bundler flag", () => {
   beforeEach(() => localStorage.clear());
 
   it("shouldUseBundlerVerify when UI off but flag in localStorage", () => {
-    localStorage.setItem("shipkernel_build_verify_bundler", "1");
+    localStorage.setItem("asooju_build_verify_bundler", "1");
     expect(isBuildVerifyBundlerEnabled()).toBe(true);
     expect(shouldUseBundlerVerify(false)).toBe(true);
     expect(shouldUseBundlerVerify(true)).toBe(true);
@@ -21,7 +21,7 @@ describe("preview verify bundler flag", () => {
 
   it("defaults to Draft iframe UI when no saved preference", () => {
     expect(isSandpackPreviewEnabled()).toBe(false);
-    localStorage.setItem("shipkernel_preview_v2", "1");
+    localStorage.setItem("asooju_preview_v2", "1");
     expect(isSandpackPreviewEnabled()).toBe(true);
   });
 });

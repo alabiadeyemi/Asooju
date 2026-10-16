@@ -135,10 +135,10 @@ const ProjectBuilder = () => {
   const [isValidatingSettings, setIsValidatingSettings] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [autoFixEnabled, setAutoFixEnabled] = useState(
-    () => localStorage.getItem("shipkernel_auto_fix") !== "0"
+    () => localStorage.getItem("asooju_auto_fix") !== "0"
   );
   const [agentMode, setAgentMode] = useState<AgentChatMode>(() => {
-    const raw = localStorage.getItem("shipkernel_agent_mode");
+    const raw = localStorage.getItem("asooju_agent_mode");
     if (raw === "plan" || raw === "talk" || raw === "build") return raw;
     // Default Talk — discover before plan/build
     return "talk";
@@ -176,11 +176,11 @@ const ProjectBuilder = () => {
   }, [isGenerating]);
 
   useEffect(() => {
-    localStorage.setItem("shipkernel_auto_fix", autoFixEnabled ? "1" : "0");
+    localStorage.setItem("asooju_auto_fix", autoFixEnabled ? "1" : "0");
   }, [autoFixEnabled]);
 
   useEffect(() => {
-    localStorage.setItem("shipkernel_agent_mode", agentMode);
+    localStorage.setItem("asooju_agent_mode", agentMode);
   }, [agentMode]);
 
   useEffect(() => {
@@ -302,14 +302,14 @@ const ProjectBuilder = () => {
   }, [previewError]);
 
   const [activeProvider, setActiveProvider] = useState(
-    () => localStorage.getItem("shipkernel_active_provider") || "gemini"
+    () => localStorage.getItem("asooju_active_provider") || "gemini"
   );
   const [providerKeys, setProviderKeys] = useState<Record<string, string>>(() => ({
-    openai: localStorage.getItem("shipkernel_openai_key") || "",
-    gemini: localStorage.getItem("shipkernel_gemini_key") || "",
-    grok: localStorage.getItem("shipkernel_grok_key") || "",
-    claude: localStorage.getItem("shipkernel_claude_key") || "",
-    deepseek: localStorage.getItem("shipkernel_deepseek_key") || "",
+    openai: localStorage.getItem("asooju_openai_key") || "",
+    gemini: localStorage.getItem("asooju_gemini_key") || "",
+    grok: localStorage.getItem("asooju_grok_key") || "",
+    claude: localStorage.getItem("asooju_claude_key") || "",
+    deepseek: localStorage.getItem("asooju_deepseek_key") || "",
   }));
   const setProviderKey = (provider: string, key: string) => {
     setProviderKeys((prev) => ({ ...prev, [provider]: key }));
@@ -2403,7 +2403,7 @@ const ProjectBuilder = () => {
 
   useEffect(() => {
     localStorage.setItem(
-      "shipkernel_preview_data",
+      "asooju_preview_data",
       JSON.stringify({
         files: vfsFiles,
         supabaseUrl,
@@ -2469,7 +2469,13 @@ const ProjectBuilder = () => {
         !Array.isArray(vfs) &&
         Object.keys(vfs as object).length > 0
       ) {
-        setVfsFiles(vfs as Record<string, string>);
+        const files = { ...(vfs as Record<string, string>) };
+        const entry = (files["App.tsx"] || files["App.jsx"] || "").trim();
+        // Older rows kept the app in `code` while vfs_files has an empty entry.
+        if (!entry && code && String(code).trim().length > 200) {
+          files["App.tsx"] = String(code);
+        }
+        setVfsFiles(files);
         return;
       }
       if (code && String(code).trim()) {
@@ -2582,12 +2588,12 @@ const ProjectBuilder = () => {
 
   const onSettingsSave = async () => {
     setIsValidatingSettings(true);
-    localStorage.setItem("shipkernel_openai_key", providerKeys.openai || "");
-    localStorage.setItem("shipkernel_gemini_key", providerKeys.gemini || "");
-    localStorage.setItem("shipkernel_grok_key", providerKeys.grok || "");
-    localStorage.setItem("shipkernel_claude_key", providerKeys.claude || "");
-    localStorage.setItem("shipkernel_deepseek_key", providerKeys.deepseek || "");
-    localStorage.setItem("shipkernel_active_provider", activeProvider);
+    localStorage.setItem("asooju_openai_key", providerKeys.openai || "");
+    localStorage.setItem("asooju_gemini_key", providerKeys.gemini || "");
+    localStorage.setItem("asooju_grok_key", providerKeys.grok || "");
+    localStorage.setItem("asooju_claude_key", providerKeys.claude || "");
+    localStorage.setItem("asooju_deepseek_key", providerKeys.deepseek || "");
+    localStorage.setItem("asooju_active_provider", activeProvider);
     const previewUrl = supabaseUrl.trim();
     const previewKey = supabaseAnonKey.trim();
     if (projectId) {
@@ -2769,7 +2775,7 @@ const ProjectBuilder = () => {
             {activeMobileTab === "editor" ? previewPanel : chatPanel}
           </div>
         ) : (
-          <PanelGroup direction="horizontal" autoSaveId="shipkernel-builder-layout">
+          <PanelGroup direction="horizontal" autoSaveId="asooju-builder-layout">
             {showFiles && (
               <>
                 <Panel
@@ -2852,7 +2858,7 @@ const ProjectBuilder = () => {
         activeProvider={activeProvider}
         setActiveProvider={(p) => {
           setActiveProvider(p);
-          localStorage.setItem("shipkernel_active_provider", p);
+          localStorage.setItem("asooju_active_provider", p);
         }}
         providerKeys={providerKeys}
         setProviderKey={setProviderKey}

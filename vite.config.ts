@@ -23,7 +23,7 @@ function localApiPlugin(): Plugin {
   };
 
   return {
-    name: "shipkernel-local-api",
+    name: "asooju-local-api",
     configResolved(config) {
       const env = loadEnv(config.mode, config.envDir || process.cwd(), "");
       for (const [k, v] of Object.entries(env)) {

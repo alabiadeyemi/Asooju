@@ -9,6 +9,9 @@ export const EXPORT_RUNTIME_DEPS: Record<string, string> = {
   "framer-motion": "^11.0.0",
   "lucide-react": "^0.462.0",
   "@supabase/supabase-js": "^2.95.3",
+  // Draft preview loads public/vendor/three.min.js (r160 UMD) only when a file imports "three".
+  // Keep this pin on 0.160.1 — later three builds dropped that UMD file.
+  three: "0.160.1",
 };
 
 export const EXPORT_DEV_DEPS: Record<string, string> = {
@@ -65,7 +68,7 @@ function defaultPackageObject(projectName: string, vfs: Record<string, string>) 
     deps["@supabase/supabase-js"] = EXPORT_RUNTIME_DEPS["@supabase/supabase-js"];
   }
   return {
-    name: projectName.replace(/\s+/g, "-").toLowerCase().slice(0, 64) || "shipkernel-app",
+    name: projectName.replace(/\s+/g, "-").toLowerCase().slice(0, 64) || "asooju-app",
     private: true,
     version: "0.0.1",
     type: "module",

@@ -2,7 +2,7 @@ import type { ChatMessage } from "@/components/app/builder/BuilderChatPanel";
 
 const MAX_STORED_MESSAGES = 80;
 const MAX_CONTENT_CHARS = 6_000;
-const CHAT_CACHE_KEY = "shipkernel_project_chat";
+const CHAT_CACHE_KEY = "asooju_project_chat";
 
 /** Drop heavy attachment payloads; keep enough to show chips on reload. */
 export function serializeChatMessages(messages: ChatMessage[]): ChatMessage[] {

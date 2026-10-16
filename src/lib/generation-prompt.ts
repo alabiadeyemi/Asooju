@@ -2,13 +2,14 @@ import { isSeedWorkspace } from "./vfs";
 import type { ChatAttachment } from "./attachments";
 import {
   classifyBuildScale,
+  isSceneBuild,
   needsPersistentBackend,
   purposeCharBudget,
   waveBudget,
   type BuildScale,
 } from "./complexity";
 import { isDetailedProductSpec } from "./product-spec";
-import { SHIPKERNEL_AGENT_NAME } from "./agent-identity";
+import { ASOOJU_AGENT_NAME } from "./agent-identity";
 import { AGENT_VOICE_RULES, followUpByMood, type AgentMood } from "./agent-voice";
 import {
   collectImportNeighbors,
@@ -138,7 +139,7 @@ BACKEND — DEMO-FIRST (preview cannot run npm, Postgres, or real email OTP):
 15. Never invent fake REST URLs. Never call localhost / npm scripts / migrations from the browser app.
 16. AUTH MUST BE DEMO-FIRST (critical):
     - Default login is a **demo session**: e.g. one-click “Continue as Dispatcher / Supervisor / Admin”, or email+password that only checks against seeded demo users in localStorage — no network, no OTP, no magic links required to use the app in preview.
-    - Persist session in localStorage (e.g. shipkernel_demo_session). Gate routes on that session.
+    - Persist session in localStorage (e.g. asooju_demo_session). Gate routes on that session.
     - Optional “Use Supabase Auth” path is allowed ONLY behind hasBackend and must degrade gracefully; never make OTP/verifyOtp the only way in.
     - Do NOT wire signup → email OTP as the primary preview flow (emails won’t arrive in the sandbox).
 17. RLS: schema.sql should ENABLE ROW LEVEL SECURITY for when they promote to real Supabase. Service-role never in the browser.
@@ -148,7 +149,7 @@ BACKEND — DEMO-FIRST (preview cannot run npm, Postgres, or real email OTP):
 `;
 
 const ENV_DOCS_RULES = `
-ENV & SHIP DOCS (workspace — not the ShipKernel platform):
+ENV & SHIP DOCS (workspace — not the Asooju platform):
 21. If ANY file you write or touch reads import.meta.env.VITE_* (including lib/supabase.ts), include in files[]:
     - .env.example — one \`KEY=\` line per VITE_* variable the app uses (empty values; 1–2 line header comment max).
     - README.md — short "Run locally": copy .env.example → .env, npm install, npm run dev. If supabase/schema.sql exists, add: run that SQL in the Supabase SQL Editor, then set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.
@@ -161,25 +162,26 @@ const SPEC_FIDELITY_RULES = `
 SPEC FIDELITY (when user pasted a detailed blueprint / markdown spec):
 - That document is authoritative for product domain, module names (CRM, email, automation, etc.), and information architecture.
 - Implement the MVP / Phase 0–1 slice they describe — do NOT substitute an unrelated generic SaaS or ignore the spec because of project folder name.
-- ShipKernel ships React+Vite demo-first apps: map NestJS/ClickHouse/Kafka/Prisma mentions to lib/db.ts + optional supabase/schema.sql + realistic admin UI shells with seeded data — not real infra in preview.
+- Asooju ships React+Vite demo-first apps: map NestJS/ClickHouse/Kafka/Prisma mentions to lib/db.ts + optional supabase/schema.sql + realistic admin UI shells with seeded data — not real infra in preview.
 `;
 
 export function buildSystemInstruction(
   intent: GenIntent,
   scale: BuildScale = "simple",
   waveOpts?: { wave: number; maxWaves: number; targetPaths?: string[] },
-  opts?: { hasDetailedSpec?: boolean }
+  opts?: { hasDetailedSpec?: boolean; scene?: boolean }
 ): string {
   const hasDetailedSpec = Boolean(opts?.hasDetailedSpec);
+  const scene = Boolean(opts?.scene);
   const budget = waveBudget(scale);
   const modeNotes: Record<GenIntent, string> = {
     create: hasDetailedSpec
       ? `MODE: CREATE — implement the user's specified product (blueprint/spec is source of truth).
-- Do not reuse starter/blank copy or ShipKernel branding.
+- Do not reuse starter/blank copy or Asooju branding.
 - Product name, modules, and screens come from their spec (marketing platform, CRM, etc.) — not a random alternate idea.
 `
       : `MODE: CREATE — invent a complete, unique product from the user request.
-- Do not reuse starter/blank copy or ShipKernel branding.
+- Do not reuse starter/blank copy or Asooju branding.
 - Derive a distinct product name, visual direction, and IA.
 - Ship a fully featured first version: navigation, primary screens, empty states, realistic sample data, interactive flows.
 - Prefer ${budget.preferFiles} focused files for this scale (${scale}).
@@ -206,7 +208,18 @@ export function buildSystemInstruction(
   let waveBlock = "";
   if (waveOpts && waveOpts.maxWaves > 1) {
     const { wave, maxWaves, targetPaths } = waveOpts;
-    if (wave === 0) {
+    if (wave === 0 && scene) {
+      waveBlock = `
+MULTI-WAVE BUILD (wave 1/${maxWaves}) — PLAYABLE SCENE
+This is a 3D scene or game, not a dashboard.
+This wave must render a working canvas:
+- import * as THREE from "three"
+- procedural meshes, lights, a camera, and a requestAnimationFrame loop cancelled on unmount
+- keyboard or pointer controls when the user asked for a game
+Do not add auth, Supabase, schema.sql, or marketing stub pages unless the user asked for them.
+A router is optional, and only if there is more than one screen.
+Return JSON with optional "next_paths" only for scene files still needed.`;
+    } else if (wave === 0) {
       waveBlock = `
 MULTI-WAVE BUILD (wave 1/${maxWaves}) — FOUNDATION
 Emit ONLY the foundation (do not try to finish the whole product):
@@ -219,11 +232,23 @@ Emit ONLY the foundation (do not try to finish the whole product):
 Leave other modules as lightweight but RENDERABLE stub screens (real components with “Coming soon” copy matching the brand) — never broken imports or empty routes.
 Return JSON with optional "next_paths": string[] listing files still needed.`;
     } else if (wave < maxWaves - 1) {
-      waveBlock = `
+      waveBlock = scene
+        ? `
+MULTI-WAVE BUILD (wave ${wave + 1}/${maxWaves}) — SCENE
+Keep the WebGL canvas playable. Extend the scene the user asked for.
+Do not add auth, Supabase, or a dashboard unless the user asked.
+Do not remove the import from "three".`
+        : `
 MULTI-WAVE BUILD (wave ${wave + 1}/${maxWaves}) — MODULES
 Implement the next batch of real screens/modules. Prefer these paths if provided: ${(targetPaths || []).slice(0, 12).join(", ") || "(choose highest-value missing modules)"}.
 Do not rewrite unrelated finished files unless required for imports.
 Return "next_paths" for anything still missing.`;
+    } else if (scene) {
+      waveBlock = `
+MULTI-WAVE BUILD (wave ${wave + 1}/${maxWaves}) — SCENE POLISH
+Keep the WebGL canvas playable. Improve controls, lighting, and the loop.
+Do not add auth, Supabase, or a dashboard unless the user asked.
+Do not remove the import from "three".`;
     } else {
       waveBlock = `
 MULTI-WAVE BUILD (wave ${wave + 1}/${maxWaves}) — HARDEN
@@ -235,7 +260,7 @@ Omit "next_paths" or return [].`;
     }
   }
 
-  return `You are ${SHIPKERNEL_AGENT_NAME} — ShipKernel's coding agent and a senior full-stack engineer for multifile React apps with optional Supabase backend.
+  return `You are ${ASOOJU_AGENT_NAME} — Asooju's coding agent and a senior full-stack engineer for multifile React apps with optional Supabase backend.
 
 ${AGENT_VOICE_RULES}
 ${hasDetailedSpec ? SPEC_FIDELITY_RULES : ""}
@@ -272,7 +297,7 @@ ${
 }
 2. Always update App.tsx as default-export entry when creating/changing the app shell.
 3. Multifile: components/, hooks/, lib/, pages/ as needed.
-4. Libraries ONLY: react, react-dom, lucide-react, framer-motion, react-router-dom, @/lib/supabase (re-export), @supabase/supabase-js via lib/supabase.ts wrapper.
+4. Libraries ONLY: react, react-dom, lucide-react, framer-motion, react-router-dom, @/lib/supabase (re-export), @supabase/supabase-js via lib/supabase.ts wrapper. You may also \`import * as THREE from "three"\` ONLY when the user asked for a 3D scene or game. Never import three/examples, three/addons, or @react-three/*. Procedural meshes only (BoxGeometry, CylinderGeometry, ExtrudeGeometry) — no GLTF or remote model URLs. One component owns the canvas, WebGLRenderer, lights, and a requestAnimationFrame loop cancelled on unmount. Do not import three for dashboards, marketing pages, or other non-3D apps.
 5. One top-level MemoryRouter or HashRouter in App.tsx if routing — never nest routers.
 6. CSS in index.css (auto-injected). Tailwind utility classes OK. Prefer CSS variables for brand tokens.
 7. Images: https://images.unsplash.com/... only (stable URLs). No broken placeholders.
@@ -284,7 +309,7 @@ ${intent === "fix" ? "" : "10. Fully featured for the domain — not a hollow mo
     : `11. DESIGN ANTI-SLOP (critical):
     - Ban purple-on-white / indigo glow / generic 3-stat hero / identical Inter card grids.
     - Ban cream+#terracotta newspaper layouts and “AI SaaS” clichés.
-    - No “AI”, “GPT”, “powered by”, “ShipKernel”, “Generated”, or badge/tag chrome in the UI.
+    - No “AI”, “GPT”, “powered by”, “Asooju”, “Generated”, or badge/tag chrome in the UI.
     - Pick one strong art direction (editorial, brutalist-soft, Swiss precision, warm retail, monochrome luxury, etc.) and execute it consistently.
     - Expressive typography via font stacks available in CSS (system + distinctive fallbacks); purposeful spacing; real visual hierarchy.
     - Motion: 2–3 intentional framer-motion moments max — presence, not noise.
@@ -488,7 +513,7 @@ export function narrateProgressEvent(
   if (event.type === "phase") return event.label;
   if (event.type === "status") {
     const m = event.message.replace(/…$/, "").trim();
-    if (/credit|platform|ShipKernel AI|connecting/i.test(m)) {
+    if (/credit|platform|Asooju AI|connecting/i.test(m)) {
       return m.endsWith(".") ? m : `${m}.`;
     }
     if (/wave|step/i.test(m)) return m.endsWith(".") ? m : `${m}.`;
@@ -522,7 +547,7 @@ export function buildPlanPrompt(
   const paths = Object.keys(vfs).sort().slice(0, 40);
   const tree = paths.map((p) => `- ${p}`).join("\n") || "(empty / blank starter)";
 
-  const system = `You are ${SHIPKERNEL_AGENT_NAME} in Plan mode (ShipKernel workspace).
+  const system = `You are ${ASOOJU_AGENT_NAME} in Plan mode (Asooju workspace).
 Do NOT write application code. Do NOT return files or actions.
 
 ${AGENT_VOICE_RULES}
@@ -603,7 +628,7 @@ export function buildUserContent(
       maxWaves,
       targetPaths: options.targetPaths,
     },
-    { hasDetailedSpec }
+    { hasDetailedSpec, scene: isSceneBuild(purposeRaw) }
   );
 
   const projectLine = options.projectName
@@ -740,16 +765,16 @@ If the ask is vague, ask clarifying questions instead of inventing a product.
 If they clearly want code changes, tell them to switch to Build (or say “build it”).
 `;
 
-  const system = `You are ${SHIPKERNEL_AGENT_NAME} in Talk / discovery mode (ShipKernel workspace).
+  const system = `You are ${ASOOJU_AGENT_NAME} in Talk / discovery mode (Asooju workspace).
 You are chatting with the user about their project. Do NOT write or propose file contents.
 Do NOT return files, actions, patches, or code fences meant to be applied.
-If they ask meta questions (who you are, which platform): answer as ${SHIPKERNEL_AGENT_NAME} on ShipKernel — not Claude/Gemini/DeepSeek/etc. You may hype ShipKernel briefly (export, preview, ownership, BYOK) with personality, then steer back to their app.
+If they ask meta questions (who you are, which platform): answer as ${ASOOJU_AGENT_NAME} on Asooju — not Claude/Gemini/DeepSeek/etc. You may hype Asooju briefly (export, preview, ownership, BYOK) with personality, then steer back to their app.
 ${discoveryBlock}
 ${AGENT_VOICE_RULES}
 
 Return ONLY JSON:
 {
-  "reply": "spoken answer (markdown ok). Be helpful AND funny — hook + clarity + optional ShipKernel flex on meta questions",
+  "reply": "spoken answer (markdown ok). Be helpful AND funny — hook + clarity + optional Asooju flex on meta questions",
   "mood": "curious|teacher|focused|upbeat|calm|wry|proud",
   "thought": "optional short private reasoning"
 }`;

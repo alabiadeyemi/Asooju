@@ -27,7 +27,7 @@ const ExportPage = () => {
   const { projectId } = useParams();
   const [isPushing, setIsPushing] = useState(false);
   const [vfsFiles, setVfsFiles] = useState<Record<string, string>>({});
-  const [projectName, setProjectName] = useState("shipkernel-export");
+  const [projectName, setProjectName] = useState("asooju-export");
   const { user, loginWithGitHub, gitHubToken, isGuest } = useAuth();
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const ExportPage = () => {
       return;
     }
 
-    setProjectName(data.name || "shipkernel-export");
+    setProjectName(data.name || "asooju-export");
     if (data.vfs_files && typeof data.vfs_files === "object") {
       setVfsFiles(data.vfs_files as Record<string, string>);
     } else {
@@ -88,7 +88,7 @@ const ExportPage = () => {
     const toastId = toast.loading(`Pushing ${bundledCount} files to GitHub (incl. run scaffold)...`);
 
     try {
-      const repoName = `shipkernel-${projectId?.slice(0, 8) || "export"}`;
+      const repoName = `asooju-${projectId?.slice(0, 8) || "export"}`;
       const { url, fileCount: n } = await pushVfsToGitHub(gitHubToken, repoName, vfsFiles);
       toast.success(`Pushed ${n} files`, {
         id: toastId,
@@ -116,7 +116,7 @@ const ExportPage = () => {
         // Fallback: download App.tsx + a manifest
         const blob = new Blob(
           [
-            `// ShipKernel export: ${projectName}\n// Files: ${Object.keys(vfsFiles).join(", ")}\n\n` +
+            `// Asooju export: ${projectName}\n// Files: ${Object.keys(vfsFiles).join(", ")}\n\n` +
               Object.entries(vfsFiles)
                 .map(([path, content]) => `========== ${path} ==========\n${content}\n`)
                 .join("\n"),
@@ -208,7 +208,7 @@ const ExportPage = () => {
             </div>
             {isGitHubConnected && (
               <div className="mt-6 pt-6 border-t border-white/5 text-xs font-mono text-white/40">
-                {user?.email?.split("@")[0] || "user"}/shipkernel-{projectId?.slice(0, 8)}
+                {user?.email?.split("@")[0] || "user"}/asooju-{projectId?.slice(0, 8)}
               </div>
             )}
           </motion.div>

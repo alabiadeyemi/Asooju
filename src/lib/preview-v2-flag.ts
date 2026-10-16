@@ -4,7 +4,7 @@ export function isSandpackPreviewEnabled(): boolean {
   if (import.meta.env.VITE_PREVIEW_V2 === "0") return false;
   if (import.meta.env.VITE_PREVIEW_V2 === "1") return true;
   if (typeof window === "undefined") return false;
-  const pref = localStorage.getItem("shipkernel_preview_v2");
+  const pref = localStorage.getItem("asooju_preview_v2");
   if (pref === "0") return false;
   if (pref === "1") return true;
   return false;
@@ -12,7 +12,7 @@ export function isSandpackPreviewEnabled(): boolean {
 
 export function setSandpackPreviewEnabled(on: boolean): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem("shipkernel_preview_v2", on ? "1" : "0");
+  localStorage.setItem("asooju_preview_v2", on ? "1" : "0");
 }
 
 /** Export-bundle Sandpack for build/auto-fix verify when UI is iframe-only. */
@@ -21,7 +21,7 @@ export function isBuildVerifyBundlerEnabled(): boolean {
     return import.meta.env.VITE_BUILD_VERIFY_BUNDLER === "1";
   }
   if (import.meta.env.VITE_BUILD_VERIFY_BUNDLER === "1") return true;
-  return localStorage.getItem("shipkernel_build_verify_bundler") === "1";
+  return localStorage.getItem("asooju_build_verify_bundler") === "1";
 }
 
 export function shouldUseBundlerVerify(sandpackPreviewUi: boolean): boolean {

@@ -3,7 +3,7 @@ export function cloneVfs(vfs: Record<string, string>): Record<string, string> {
   return { ...vfs };
 }
 
-/** Minimal blank canvas — never brand projects as ShipKernel */
+/** Minimal blank canvas — never brand projects as Asooju */
 export const DEFAULT_VFS: Record<string, string> = {
   "App.tsx": `import React from "react";
 
@@ -30,7 +30,7 @@ export function isSeedWorkspace(vfs: Record<string, string>): boolean {
   const keys = Object.keys(vfs);
   if (keys.length === 0) return true;
   const app = vfs["App.tsx"] || vfs["App.jsx"] || "";
-  return /Describe what to build|New project|ShipKernel|Blank canvas|Waiting for your prompt/i.test(
+  return /Describe what to build|New project|Asooju|Blank canvas|Waiting for your prompt/i.test(
     app
   );
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { DEFAULT_VFS, cloneVfs, deriveCodeFromVfs } from "@/lib/vfs";
 import { getTemplate, matchTemplateByTitle, type TemplateId } from "@/lib/templates";
 
-const LOCAL_PROJECTS_KEY = "shipkernel_local_projects";
+const LOCAL_PROJECTS_KEY = "asooju_local_projects";
 
 export type LocalProject = {
   id: string;
@@ -79,7 +79,7 @@ export const useProjects = () => {
       const code = deriveCodeFromVfs(vfs);
 
       if (!session) {
-        const guest = localStorage.getItem("shipkernel_mock_user");
+        const guest = localStorage.getItem("asooju_mock_user");
         if (!guest) {
           toast.error("Please log in to create projects", { id: toastId });
           navigate("/auth/login");

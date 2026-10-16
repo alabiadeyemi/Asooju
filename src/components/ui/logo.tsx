@@ -39,7 +39,7 @@ export const Logo = ({ className = "", size = "md", showText = false }: LogoProp
                         transition={{ duration: 1.5, ease: "easeInOut" }}
                     />
 
-                    {/* Core Kernel Structure */}
+                    {/* Core mark */}
                     <motion.path
                         d="M50 25L75 40V60L50 75L25 60V40L50 25Z"
                         fill="currentColor"
@@ -86,7 +86,7 @@ export const Logo = ({ className = "", size = "md", showText = false }: LogoProp
 
             {showText && (
                 <span className="font-black text-xl tracking-tighter uppercase text-white">
-                    Ship<span className="text-primary italic">Kernel</span>
+                    Asoo<span className="text-primary italic">ju</span>
                 </span>
             )}
         </div>

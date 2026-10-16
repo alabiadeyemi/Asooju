@@ -38,7 +38,7 @@ const settingsLinks = [
   { href: "/app/settings/providers", label: "AI Models", icon: Cpu },
 ] as const;
 
-const STORAGE_KEY = "shipkernel_sidebar_collapsed";
+const STORAGE_KEY = "asooju_sidebar_collapsed";
 
 export const AppLayout = () => {
   const location = useLocation();

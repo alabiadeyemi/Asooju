@@ -325,7 +325,7 @@ export default function AdminPanel() {
           <Shield className="h-5 w-5 text-primary shrink-0" />
           <div className="min-w-0">
             <h1 className="text-sm sm:text-base font-semibold tracking-tight truncate">
-              ShipKernel Admin
+              Asooju Admin
             </h1>
             <p className="text-[10px] text-white/35 truncate hidden sm:block">
               {adminEmail || "operator"}
@@ -735,7 +735,7 @@ export default function AdminPanel() {
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
                         a.href = url;
-                        a.download = `shipkernel-users-page-${userPage}.csv`;
+                        a.download = `asooju-users-page-${userPage}.csv`;
                         a.click();
                         URL.revokeObjectURL(url);
                         toast.success("Exported current page");

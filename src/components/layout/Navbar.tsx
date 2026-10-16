@@ -211,7 +211,7 @@ export const Navbar = () => {
 
               <div className="p-6 border-t border-white/5 bg-black/40">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
-                  <span>ShipKernel v2.4.1</span>
+                  <span>Asooju v2.4.1</span>
                   <div className="flex gap-4">
                     <Github className="w-4 h-4" />
                     <MessageSquare className="w-4 h-4" />

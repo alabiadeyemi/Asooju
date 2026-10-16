@@ -259,7 +259,7 @@ const Index = () => {
 
                     <div className="pl-6 space-y-1">
                       <div className="opacity-40"><span className="text-primary italic">import</span> React <span className="text-primary italic">from</span> <span className="text-primary/60">"react"</span>;</div>
-                      <div className="opacity-20"><span className="text-primary italic">import</span> {"{"} Builder {"}"} <span className="text-primary italic">from</span> <span className="text-primary/60">"@shipkernel/core"</span>;</div>
+                      <div className="opacity-20"><span className="text-primary italic">import</span> {"{"} Builder {"}"} <span className="text-primary italic">from</span> <span className="text-primary/60">"@asooju/core"</span>;</div>
                       <div className="h-4" />
                       <div className="opacity-60"><span className="text-primary">export default function</span> <span className="text-white">App()</span> {"{"}</div>
                       <div className="ml-6 opacity-80"><span className="text-primary">return</span> (</div>

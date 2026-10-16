@@ -5,7 +5,7 @@ export type ProjectPreviewEnv = {
   anonKey: string;
 };
 
-const STORAGE_PREFIX = "shipkernel_project_preview_env:";
+const STORAGE_PREFIX = "asooju_project_preview_env:";
 
 function storageKey(projectId: string): string {
   return `${STORAGE_PREFIX}${projectId}`;
@@ -37,7 +37,7 @@ export function writeProjectPreviewEnv(
   localStorage.setItem(storageKey(projectId), JSON.stringify(payload));
 }
 
-/** Preview iframe creds: saved per-project only — never ShipKernel platform `VITE_*`. */
+/** Preview iframe creds: saved per-project only — never Asooju platform `VITE_*`. */
 export function resolveProjectPreviewEnv(projectId: string | undefined): ProjectPreviewEnv {
   const id = projectId?.trim();
   if (!id) return { url: "", anonKey: "" };

@@ -7,14 +7,14 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 if (typeof window !== "undefined") {
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     console.error(
-      "[ShipKernel] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY in .env — restart vite after fixing."
+      "[Asooju] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY in .env — restart vite after fixing."
     );
   } else if (
     !/^eyJ/.test(SUPABASE_PUBLISHABLE_KEY) &&
     !/^sb_publishable_/.test(SUPABASE_PUBLISHABLE_KEY)
   ) {
     console.error(
-      "[ShipKernel] VITE_SUPABASE_PUBLISHABLE_KEY looks wrong. Use the anon/public key from Supabase → Project Settings → API (JWT eyJ… or sb_publishable_…)."
+      "[Asooju] VITE_SUPABASE_PUBLISHABLE_KEY looks wrong. Use the anon/public key from Supabase → Project Settings → API (JWT eyJ… or sb_publishable_…)."
     );
   }
 }

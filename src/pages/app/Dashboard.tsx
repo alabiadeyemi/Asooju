@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { projectSummary } from "@/lib/project-summary";
 import { toast } from "sonner";
 import { Logo } from "@/components/ui/logo";
 
@@ -200,7 +201,7 @@ const Dashboard = () => {
                             <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{project.is_published ? 'Live' : 'Blueprint'}</span>
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed max-w-md line-clamp-1">{project.prompt}</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed max-w-md line-clamp-1">{projectSummary(project)}</p>
                       </div>
 
                       <div className="flex flex-row md:flex-col items-center md:items-end gap-6 md:gap-2">

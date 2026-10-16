@@ -100,7 +100,7 @@ export default function ResetPassword() {
           New password
         </h1>
         <p className="text-muted-foreground text-sm mb-8">
-          Choose a new password for your ShipKernel account.
+          Choose a new password for your Asooju account.
         </p>
 
         {checking ? (

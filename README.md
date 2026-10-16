@@ -1,17 +1,17 @@
-# <img src="public/favicon.svg" width="40" height="40" /> ShipKernel
+# <img src="public/favicon.svg" width="40" height="40" /> Asooju
 
 ##  The Future of AI-Orchestrated Software Engineering
 
-**ShipKernel** is a high-fidelity, autonomous development platform designed to bridge the gap between abstract architectural vision and production-ready implementation. Engineered with an "Obsidian" aesthetic and powered by a multi-model AI core, ShipKernel allows developers to design, generate, and deploy complex software systems with surgical precision.
+**Asooju** is a high-fidelity, autonomous development platform designed to bridge the gap between abstract architectural vision and production-ready implementation. Engineered with an "Obsidian" aesthetic and powered by a multi-model AI core, Asooju allows developers to design, generate, and deploy complex software systems with surgical precision.
 
 ---
 
 ##  The Architecture of Excellence
 
-ShipKernel isn't just a code generator; it's a full-spectrum engineering workspace.
+Asooju isn't just a code generator; it's a full-spectrum engineering workspace.
 
 ###  1. Multi-Model Intelligence Center
-Harness the world's most powerful LLMs simultaneously. ShipKernel supports:
+Harness the world's most powerful LLMs simultaneously. Asooju supports:
 - **OpenAI GPT-4o**: The gold standard for logic and structural integrity.
 - **Google Gemini 1.5 Pro**: Massive context windows for system-wide refactoring.
 - **xAI Grok-1**: High-performance, real-time reasoning.
@@ -23,7 +23,7 @@ A premium UI experience built for the professional developer:
 - **Glassmorphism & Depth**: Multi-layered surfaces with high-fidelity blur effects.
 - **Atomic Animations**: Powered by *Framer Motion* for 60fps micro-interactions.
 - **Responsive Geometry**: A layout that breathes, from ultra-wide monitors to high-density mobile displays.
-- **The Kernel Logo**: A pulsating, animated hexagonal core symbolizing the heartbeat of your project.
+- **The Asooju mark**: A pulsating, animated hexagonal core symbolizing the heartbeat of your project.
 
 ###  3. Deep Ecosystem Integration
 - **GitHub Sync**: Automatic repository creation with the newly implemented `repo` scope. Version control is no longer a manual task—it's part of the flow.
@@ -81,8 +81,8 @@ A premium UI experience built for the professional developer:
 Ensure you have [Node.js](https://nodejs.org/) (v18+) and [npm](https://www.npmjs.com/) installed.
 
 ```bash
-git clone https://github.com/yuinz/shipkernel.git
-cd shipkernel
+git clone https://github.com/00xf5/project-forge.git
+cd project-forge
 npm install
 ```
 
@@ -112,9 +112,9 @@ To align **wave verify** with **export/GitHub** (Sandpack on `prepareExportBundl
 VITE_BUILD_VERIFY_BUNDLER=1
 ```
 
-**On Vercel (ShipKernel app itself):**
+**On Vercel (Asooju app itself):**
 
-1. [Vercel Dashboard](https://vercel.com) → your **ShipKernel** project → **Settings** → **Environment Variables**
+1. [Vercel Dashboard](https://vercel.com) → your **Asooju** project → **Settings** → **Environment Variables**
 2. Add **`VITE_BUILD_VERIFY_BUNDLER`** = **`1`** for **Production** (and **Preview** if you use preview deployments)
 3. **Redeploy** (env vars are baked in at build time for Vite)
 
@@ -143,25 +143,25 @@ More detail: [`docs/DISCOVERED_ISSUES.md`](docs/DISCOVERED_ISSUES.md) (quick ver
 
 ##  Security & Sovereignty
 
-- **Data Privacy**: ShipKernel never stores your raw BYOK API keys on its servers; they stay in your browser on that device and are sent only when needed for generation. Do not use BYOK on a shared or untrusted device.
+- **Data Privacy**: Asooju never stores your raw BYOK API keys on its servers; they stay in your browser on that device and are sent only when needed for generation. Do not use BYOK on a shared or untrusted device.
 - **Code Ownership**: You own 100% of the generated source code. Always.
 - **Foundry Standards**: Built to follow SOC2-ready patterns for enterprise-ready software.
 
 ---
 
-## 💎 The ShipKernel Vision
+## 💎 The Asooju Vision
 
 *"The best way to predict the future is to create it."*
 
-We believe software development should be about **creativity**, not **syntax**. ShipKernel is built for the builders who want to focus on the *what* and the *why*, while our AI Kernel handles the *how*.
+We believe software development should be about **creativity**, not **syntax**. Asooju is built for people who want to focus on the *what* and the *why*. It handles the *how*.
 
-Built with engineering precision by the **ShipKernel Core Team**.
+Built with engineering precision by the **Asooju Core Team**.
 
 ---
 
 <p align="center">
   <img src="public/favicon.svg" width="100" />
   <br />
-  <strong>SHIPKERNEL</strong><br />
+  <strong>ASOOJU</strong><br />
   <em>Design. Build. Ship.</em>
 </p>

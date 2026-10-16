@@ -100,7 +100,7 @@ Full suite: `npm test` · Fix smoke only: **`npm run test:fixes`**
 
 **Root causes**
 
-| Cursor / mature builders | ShipKernel today |
+| Cursor / mature builders | Asooju today |
 |--------------------------|------------------|
 | Tool loop: read, edit, **run terminal / tsc / tests** | **One LLM call per wave** → JSON with `files[]` → apply VFS → iframe Babel preview |
 | Full repo context | **Token-budgeted**, truncated VFS (`buildSmartVfsContext`, `waveBudget` in `src/lib/complexity.ts`) |
@@ -155,7 +155,7 @@ _(Move items here when resolved; keep one-line summary + PR/commit link.)_
 
 **Fix (verified):**
 
-- `src/lib/project-preview-env.ts` — `readProjectPreviewEnv` / `writeProjectPreviewEnv` (`localStorage` key `shipkernel_project_preview_env:<projectId>`).
+- `src/lib/project-preview-env.ts` — `readProjectPreviewEnv` / `writeProjectPreviewEnv` (`localStorage` key `asooju_project_preview_env:<projectId>`).
 - `src/pages/app/ProjectBuilder.tsx` — `useEffect([projectId])` restores saved values via `resolveProjectPreviewEnv`; `onSettingsSave` calls `writeProjectPreviewEnv` when `projectId` is set.
 - `src/test/project-preview-env.test.ts` — unit tests (round-trip, trim).
 
@@ -165,14 +165,14 @@ _(Move items here when resolved; keep one-line summary + PR/commit link.)_
 
 ### Step 2 — No platform Supabase in generated-app preview (`P0`) — **DONE 2026-10-01**
 
-**Problem:** When a project had no saved preview Supabase settings, the builder injected **ShipKernel’s** `VITE_SUPABASE_*` into the iframe. Generated apps could treat `hasBackend === true` and call the **platform** Supabase (wrong DB, missing tables).
+**Problem:** When a project had no saved preview Supabase settings, the builder injected **Asooju’s** `VITE_SUPABASE_*` into the iframe. Generated apps could treat `hasBackend === true` and call the **platform** Supabase (wrong DB, missing tables).
 
 **Fix (verified):**
 
 - `src/lib/project-preview-env.ts` — `resolveProjectPreviewEnv(projectId)` returns saved pair or `{ url: "", anonKey: "" }` (never reads `import.meta.env`).
 - `src/pages/app/ProjectBuilder.tsx` — initial state `""`; `useEffect([projectId])` uses `resolveProjectPreviewEnv` only.
 
-**Verification:** `npm test` (`resolveProjectPreviewEnv` cases). Manual: new project without saved Supabase → preview postMessage uses empty URL/key → generated `lib/supabase.ts` should set `hasBackend` false / demo path. ShipKernel app auth (`integrations/supabase/client.ts`) unchanged.
+**Verification:** `npm test` (`resolveProjectPreviewEnv` cases). Manual: new project without saved Supabase → preview postMessage uses empty URL/key → generated `lib/supabase.ts` should set `hasBackend` false / demo path. Asooju app auth (`integrations/supabase/client.ts`) unchanged.
 
 **Not in scope for Step 2:** DB-backed project config (Step 5).
 

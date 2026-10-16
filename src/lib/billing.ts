@@ -1,4 +1,4 @@
-/** Lovable-inspired credit economics for ShipKernel */
+/** Lovable-inspired credit economics for Asooju */
 
 export const FREE_WELCOME_CREDITS = 5;
 export const PRO_MONTHLY_CREDITS = 100;

@@ -99,18 +99,18 @@ Error handling response: TypeError: Cannot read properties of undefined (reading
     at <URL>
  Content script 消息发送成功: Object Object
  Email addresses stored:  Array(39)
- 检测到URL变化，调用content_script https://shipkernel.vercel.app/auth/login
+ 检测到URL变化，调用content_script https://asooju.vercel.app/auth/login
  Email addresses stored:  Array(39)
  Content script 消息发送成功: Object Object
- 检测到URL变化，调用content_script https://shipkernel.vercel.app/app
+ 检测到URL变化，调用content_script https://asooju.vercel.app/app
  Email addresses stored:  Array(39)
  Email addresses stored:  Array(39)
 content.js:40 Email addresses stored:  Array(39)
 content.js:40 Email addresses stored:  Array(39)
-content.bundle.js:1 检测到URL变化，调用content_script https://shipkernel.vercel.app/app/new
+content.bundle.js:1 检测到URL变化，调用content_script https://asooju.vercel.app/app/new
 content.js:40 Email addresses stored:  Array(39)
 content.js:40 Email addresses stored:  Array(39)
-content.bundle.js:1 检测到URL变化，调用content_script https://shipkernel.vercel.app/app/projects/new-project
+content.bundle.js:1 检测到URL变化，调用content_script https://asooju.vercel.app/app/projects/new-project
 content.js:40 Email addresses stored:  Array(39)
 (index):64 cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
 (anonymous) @ (index):64

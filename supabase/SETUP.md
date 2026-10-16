@@ -1,4 +1,4 @@
-# ShipKernel setup
+# Asooju setup
 
 ## 1. Environment
 
@@ -72,7 +72,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_PRO=price_...           # recurring Price for Pro ($29/mo → 100 credits)
 ```
 
-3. Stripe Dashboard → Product **ShipKernel Pro** → recurring price → copy Price ID to `STRIPE_PRICE_PRO`.
+3. Stripe Dashboard → Product **Asooju Pro** → recurring price → copy Price ID to `STRIPE_PRICE_PRO`.
 4. Webhook endpoint: `https://YOUR_DOMAIN/api/stripe/webhook`  
    Events: `checkout.session.completed`, `customer.subscription.*`, `invoice.paid`.
 5. Local webhook forwarding: `stripe listen --forward-to localhost:8080/api/stripe/webhook`
@@ -102,12 +102,12 @@ Guest sessions are local-only. Projects save to `localStorage`, not Supabase.
 
 ## 6. Email signup = OTP code (not confirmation links)
 
-ShipKernel verifies email with a **6-digit code** at `/auth/verify`, then a short onboarding at `/auth/onboarding`.
+Asooju verifies email with a **6-digit code** at `/auth/verify`, then a short onboarding at `/auth/onboarding`.
 
 In **Supabase Dashboard → Authentication → Email Templates → Confirm signup**, use the token (not the link):
 
 ```html
-<h2>Your ShipKernel code</h2>
+<h2>Your Asooju code</h2>
 <p>Enter this code to verify your email:</p>
 <p style="font-size:24px;letter-spacing:6px;font-weight:700">{{ .Token }}</p>
 <p>This code expires soon. If you didn’t sign up, ignore this email.</p>
@@ -121,7 +121,7 @@ Optional: Authentication → Email → set OTP expiry (e.g. 3600s).
 
 Built-in Supabase mail is heavily rate-limited (~2–4/hour). After a few signup retries you’ll get rate-limit errors — wait, or add custom SMTP.
 
-Do **not** rely on `{{ .ConfirmationURL }}` for ShipKernel signup — the app never needs the user to click a magic link.
+Do **not** rely on `{{ .ConfirmationURL }}` for Asooju signup — the app never needs the user to click a magic link.
 
 Flow: Signup → email code → `/auth/verify` → `/auth/onboarding` → `/app`.
 

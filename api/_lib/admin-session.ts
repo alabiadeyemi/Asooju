@@ -41,7 +41,7 @@ export function checkAdminCredentials(email: string, password: string): boolean 
 export function signAdminToken(email: string, ttlSec = 60 * 60 * 12): string {
   const exp = Math.floor(Date.now() / 1000) + ttlSec;
   const body = Buffer.from(
-    JSON.stringify({ typ: "shipkernel_admin", email, exp }),
+    JSON.stringify({ typ: "asooju_admin", email, exp }),
     "utf8"
   ).toString("base64url");
   const sig = createHmac("sha256", secret()).update(body).digest("base64url");
@@ -57,7 +57,7 @@ export function verifyAdminToken(
     const expect = createHmac("sha256", secret()).update(body).digest("base64url");
     if (!digestEqual(sig, expect)) return null;
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
-    if (payload?.typ !== "shipkernel_admin") return null;
+    if (payload?.typ !== "asooju_admin") return null;
     if (typeof payload.exp !== "number" || payload.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }

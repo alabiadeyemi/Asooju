@@ -53,7 +53,7 @@ export const BuilderSettingsDialog: React.FC<BuilderSettingsDialogProps> = ({
   onSave,
 }) => {
   const [resolvedModel, setResolvedModel] = useState<string | null>(
-    () => localStorage.getItem(`shipkernel_resolved_model_${activeProvider}`)
+    () => localStorage.getItem(`asooju_resolved_model_${activeProvider}`)
   );
 
   const meta = PROVIDER_META[activeProvider] || PROVIDER_META.openai;
@@ -96,7 +96,7 @@ export const BuilderSettingsDialog: React.FC<BuilderSettingsDialogProps> = ({
                 value={activeProvider}
                 onValueChange={(p) => {
                   setActiveProvider(p);
-                  setResolvedModel(localStorage.getItem(`shipkernel_resolved_model_${p}`));
+                  setResolvedModel(localStorage.getItem(`asooju_resolved_model_${p}`));
                 }}
               >
                 <SelectTrigger className="h-12 bg-white/5 border-white/10 rounded-xl px-4">

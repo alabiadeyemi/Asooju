@@ -10,14 +10,14 @@ import { motion } from "framer-motion";
 import { MessageSquare, HelpCircle, Zap, Search } from "lucide-react";
 
 const faqs = [
-  { q: "What is BYOK (Bring Your Own Key)?", a: "BYOK lets you use your own API keys from providers like OpenAI, Google Gemini, or Grok. You pay the provider directly for usage, and ShipKernel charges nothing for generations. This gives you full control over costs and no generation limits." },
+  { q: "What is BYOK (Bring Your Own Key)?", a: "BYOK lets you use your own API keys from providers like OpenAI, Google Gemini, or Grok. You pay the provider directly for usage, and Asooju charges nothing for generations. This gives you full control over costs and no generation limits." },
   { q: "How do I export my code?", a: "You can export as a ZIP file or push directly to a GitHub repository. The generated code is standard React + TypeScript with no proprietary lock-in. Deploy it anywhere — Vercel, Netlify, AWS, or your own server." },
   { q: "What providers are supported?", a: "We support OpenAI (GPT), Google Gemini, and Grok. You can switch between providers per-project or set a default in your account settings. BYOK users can add keys for any supported provider." },
   { q: "Is my data and code private?", a: "Your projects are scoped to your account using database access controls. If you use BYOK, the key is stored locally in your browser on that device. Generation requests may be sent to the AI provider you select, so their terms and data-handling rules also apply. Do not save BYOK keys on a shared or untrusted device." },
   { q: "Can I get a refund?", a: "Premium subscriptions can be cancelled at any time. We offer a 14-day money-back guarantee — if you're not happy, contact support for a full refund." },
-  { q: "What stack does ShipKernel generate?", a: "The default stack is React + TypeScript for the frontend, serverless API routes for the backend, and PostgreSQL for the database. We generate proper types, schemas, and connections between all layers." },
-  { q: "Do I need to know how to code?", a: "Not necessarily. ShipKernel is designed for developers but can be used by anyone comfortable with basic tech concepts. The generated code is clean and well-documented, making it easy to modify even for beginners." },
-  { q: "Can I use ShipKernel for commercial projects?", a: "Absolutely. You own 100% of the generated code. Use it for personal projects, client work, startups — anything you want." },
+  { q: "What stack does Asooju generate?", a: "The default stack is React + TypeScript for the frontend, serverless API routes for the backend, and PostgreSQL for the database. We generate proper types, schemas, and connections between all layers." },
+  { q: "Do I need to know how to code?", a: "Not necessarily. Asooju is designed for developers but can be used by anyone comfortable with basic tech concepts. The generated code is clean and well-documented, making it easy to modify even for beginners." },
+  { q: "Can I use Asooju for commercial projects?", a: "Absolutely. You own 100% of the generated code. Use it for personal projects, client work, startups — anything you want." },
 ];
 
 export default function FAQ() {
@@ -43,7 +43,7 @@ export default function FAQ() {
             Getting <span className="text-primary italic">Answers</span>
           </h1>
           <p className="text-lg text-muted-foreground/60 font-medium">
-            Everything you need to know about building, scaling and shipping with ShipKernel.
+            Everything you need to know about building, scaling and shipping with Asooju.
           </p>
         </div>
 

@@ -64,7 +64,7 @@ const Settings = () => {
   const [showPw, setShowPw] = useState(false);
   const [pwBusy, setPwBusy] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(() =>
-    localStorage.getItem('shipkernel_active_provider') || "openai"
+    localStorage.getItem('asooju_active_provider') || "openai"
   );
 
   useEffect(() => {
@@ -72,18 +72,18 @@ const Settings = () => {
   }, [user]);
 
   useEffect(() => {
-    localStorage.setItem('shipkernel_active_provider', selectedProvider);
+    localStorage.setItem('asooju_active_provider', selectedProvider);
   }, [selectedProvider]);
 
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
 
   // Real Key Management
   const [keys, setKeys] = useState(() => {
-    const saved = localStorage.getItem('shipkernel_keys');
+    const saved = localStorage.getItem('asooju_keys');
     if (saved) return JSON.parse(saved);
 
     // Migration/Initial check for existing OpenAI key
-    const existingOpenAI = localStorage.getItem('shipkernel_openai_key');
+    const existingOpenAI = localStorage.getItem('asooju_openai_key');
     if (existingOpenAI) {
       const initialKeys = [{
         id: "openai-init",
@@ -92,7 +92,7 @@ const Settings = () => {
         value: existingOpenAI,
         added: "Recently"
       }];
-      localStorage.setItem('shipkernel_keys', JSON.stringify(initialKeys));
+      localStorage.setItem('asooju_keys', JSON.stringify(initialKeys));
       return initialKeys;
     }
     return [];
@@ -160,18 +160,18 @@ const Settings = () => {
 
     const updatedKeys = [...keys, newKey];
     setKeys(updatedKeys);
-    localStorage.setItem('shipkernel_keys', JSON.stringify(updatedKeys));
+    localStorage.setItem('asooju_keys', JSON.stringify(updatedKeys));
 
     if (newKeyData.provider === "openai") {
-      localStorage.setItem('shipkernel_openai_key', cleanValue);
+      localStorage.setItem('asooju_openai_key', cleanValue);
     } else if (newKeyData.provider === "gemini") {
-      localStorage.setItem('shipkernel_gemini_key', cleanValue);
+      localStorage.setItem('asooju_gemini_key', cleanValue);
     } else if (newKeyData.provider === "grok") {
-      localStorage.setItem('shipkernel_grok_key', cleanValue);
+      localStorage.setItem('asooju_grok_key', cleanValue);
     } else if (newKeyData.provider === "claude") {
-      localStorage.setItem('shipkernel_claude_key', cleanValue);
+      localStorage.setItem('asooju_claude_key', cleanValue);
     } else if (newKeyData.provider === "deepseek") {
-      localStorage.setItem('shipkernel_deepseek_key', cleanValue);
+      localStorage.setItem('asooju_deepseek_key', cleanValue);
     }
 
     setIsValidating(false);
@@ -190,15 +190,15 @@ const Settings = () => {
     const removed = keys.find((k: any) => k.id === id);
     const filtered = keys.filter((k: any) => k.id !== id);
     setKeys(filtered);
-    localStorage.setItem("shipkernel_keys", JSON.stringify(filtered));
+    localStorage.setItem("asooju_keys", JSON.stringify(filtered));
 
     if (removed) {
       const STORAGE_BY_PROVIDER: Record<string, string> = {
-        openai: "shipkernel_openai_key",
-        gemini: "shipkernel_gemini_key",
-        grok: "shipkernel_grok_key",
-        claude: "shipkernel_claude_key",
-        deepseek: "shipkernel_deepseek_key",
+        openai: "asooju_openai_key",
+        gemini: "asooju_gemini_key",
+        grok: "asooju_grok_key",
+        claude: "asooju_claude_key",
+        deepseek: "asooju_deepseek_key",
       };
       const provider = String(removed.provider || "").toLowerCase();
       const normalized =
@@ -428,8 +428,8 @@ const Settings = () => {
                       className="h-10 px-6 rounded-xl border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all text-[11px] font-bold uppercase tracking-widest"
                       onClick={async () => {
                         if (isGuest) {
-                          localStorage.removeItem("shipkernel_local_projects");
-                          localStorage.removeItem("shipkernel_project_chat");
+                          localStorage.removeItem("asooju_local_projects");
+                          localStorage.removeItem("asooju_project_chat");
                           await logout();
                           window.location.href = "/";
                           return;
