@@ -211,11 +211,14 @@ export function buildSystemInstruction(
     if (wave === 0 && scene) {
       waveBlock = `
 MULTI-WAVE BUILD (wave 1/${maxWaves}) — PLAYABLE SCENE
-This is a 3D scene or game, not a dashboard.
+This is a 3D scene, object viewer, or game — not a dashboard or marketing page.
 This wave must render a working canvas:
 - import * as THREE from "three"
-- procedural meshes, lights, a camera, and a requestAnimationFrame loop cancelled on unmount
-- keyboard or pointer controls when the user asked for a game
+- lights, a PerspectiveCamera, WebGLRenderer sized to the container
+- procedural meshes for simple shapes; for real models use GLTFLoader from "three/examples/jsm/loaders/GLTFLoader" (or three/addons/loaders/GLTFLoader) with an https .glb/.gltf URL (CORS-friendly; Khronos Sample Models OK). On load failure, show a procedural placeholder
+- OrbitControls from "three/examples/jsm/controls/OrbitControls" (or three/addons/...) for viewers, or pointer-drag with plain DOM events
+- a requestAnimationFrame loop cancelled on unmount; dispose geometry/material/renderer/controls on cleanup
+- keyboard or extra pointer controls when the user asked for a game
 Do not add auth, Supabase, schema.sql, or marketing stub pages unless the user asked for them.
 A router is optional, and only if there is more than one screen.
 Return JSON with optional "next_paths" only for scene files still needed.`;
@@ -236,6 +239,7 @@ Return JSON with optional "next_paths": string[] listing files still needed.`;
         ? `
 MULTI-WAVE BUILD (wave ${wave + 1}/${maxWaves}) — SCENE
 Keep the WebGL canvas playable. Extend the scene the user asked for.
+OrbitControls + GLTFLoader are allowed; do not import other three/examples paths or @react-three.
 Do not add auth, Supabase, or a dashboard unless the user asked.
 Do not remove the import from "three".`
         : `
@@ -246,7 +250,8 @@ Return "next_paths" for anything still missing.`;
     } else if (scene) {
       waveBlock = `
 MULTI-WAVE BUILD (wave ${wave + 1}/${maxWaves}) — SCENE POLISH
-Keep the WebGL canvas playable. Improve controls, lighting, and the loop.
+Keep the WebGL canvas playable. Improve lighting, materials, and OrbitControls / load error fallbacks.
+Do not import banned three addons beyond OrbitControls, GLTFLoader, and BufferGeometryUtils.
 Do not add auth, Supabase, or a dashboard unless the user asked.
 Do not remove the import from "three".`;
     } else {
@@ -297,7 +302,7 @@ ${
 }
 2. Always update App.tsx as default-export entry when creating/changing the app shell.
 3. Multifile: components/, hooks/, lib/, pages/ as needed.
-4. Libraries ONLY: react, react-dom, lucide-react, framer-motion, react-router-dom, @/lib/supabase (re-export), @supabase/supabase-js via lib/supabase.ts wrapper. You may also \`import * as THREE from "three"\` ONLY when the user asked for a 3D scene or game. Never import three/examples, three/addons, or @react-three/*. Procedural meshes only (BoxGeometry, CylinderGeometry, ExtrudeGeometry) — no GLTF or remote model URLs. One component owns the canvas, WebGLRenderer, lights, and a requestAnimationFrame loop cancelled on unmount. Do not import three for dashboards, marketing pages, or other non-3D apps.
+4. Libraries ONLY: react, react-dom, lucide-react, framer-motion, react-router-dom, @/lib/supabase (re-export), @supabase/supabase-js via lib/supabase.ts wrapper. You may also \`import * as THREE from "three"\` ONLY when the user asked for a 3D scene, 3D object/viewer, or game. Allowed three addons (preview-resolved): \`three/examples/jsm/controls/OrbitControls\` (or \`three/addons/controls/OrbitControls\`), \`three/examples/jsm/loaders/GLTFLoader\` (or \`three/addons/loaders/GLTFLoader\`), and BufferGeometryUtils if required by the loader. Never import other three/examples or three/addons paths, DRACO/KTX2/meshopt loaders, or @react-three/*. Prefer procedural meshes (BoxGeometry, SphereGeometry, …) for simple shapes; for real models use GLTFLoader.load with an https URL ending in .glb/.gltf (CORS-friendly) and a procedural placeholder on failure. One component owns the canvas, WebGLRenderer, lights, controls, and a requestAnimationFrame loop cancelled on unmount. Do not import three for dashboards, marketing pages, or other non-3D apps.
 5. One top-level MemoryRouter or HashRouter in App.tsx if routing — never nest routers.
 6. CSS in index.css (auto-injected). Tailwind utility classes OK. Prefer CSS variables for brand tokens.
 7. Images: https://images.unsplash.com/... only (stable URLs). No broken placeholders.

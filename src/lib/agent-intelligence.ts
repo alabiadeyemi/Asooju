@@ -7,6 +7,10 @@ import { classifyBuildScale, type BuildScale } from "./complexity";
 const KNOWN_PACKAGES =
   /^(react|react-dom|react-router-dom|lucide-react|framer-motion|@supabase\/supabase-js|@\/lib\/supabase|three)$/;
 
+/** Preview-resolved three addons — treat as known so diagnose does not invent stub files. */
+const KNOWN_THREE_ADDONS =
+  /^three\/(?:examples\/jsm|addons)\/(?:controls\/OrbitControls|loaders\/GLTFLoader|utils\/BufferGeometryUtils)(?:\.js)?$/;
+
 const ROUTER_OPEN =
   /<(MemoryRouter|BrowserRouter|HashRouter|Router)\b[^>]*>/g;
 const ROUTER_CLOSE =
@@ -258,7 +262,13 @@ export function diagnoseWorkspace(
 
   for (const from of scanFiles) {
     for (const spec of parseImportSpecs(vfs[from] || "")) {
-      if (KNOWN_PACKAGES.test(spec) || spec.startsWith("http")) continue;
+      if (
+        KNOWN_PACKAGES.test(spec) ||
+        KNOWN_THREE_ADDONS.test(spec) ||
+        spec.startsWith("http")
+      ) {
+        continue;
+      }
       if (!resolveImport(from, spec, vfs)) {
         missingImports.push({ from, spec });
       }

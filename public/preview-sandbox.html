@@ -14,7 +14,7 @@
   <script src="/vendor/supabase.js"></script>
   <script src="/vendor/framer-motion.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Three r160 UMD is injected only when a workspace file imports "three" (see loadThree). -->
+  <!-- Three r160 UMD + OrbitControls/GLTFLoader addons load only when a workspace imports three (see loadThree). -->
   <!-- Icons optional; LucideReact stubs if CDN blocked -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js" onerror="console.warn('lucide CDN skipped')"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -331,18 +331,77 @@
         if (path === "react-router-dom") return window.__AsoojuRouter || getRouterLib();
         if (path === "react-router") return window.__AsoojuRouter || getRouterLib();
         if (path === "@supabase/supabase-js") return window._supabase_lib;
-        if (path === "three" || (typeof path === "string" && path.indexOf("three/") === 0)) {
-          if (path !== "three") {
-            throw new Error(
-              'Preview only supports import ... from "three". Remove the "' +
-                path +
-                '" import (no examples, addons, or extra 3D packages).'
-            );
-          }
+        if (path === "three") {
           if (!window.THREE || !window.THREE.WebGLRenderer) {
             throw new Error("Three.js runtime is not loaded yet.");
           }
           return window.THREE;
+        }
+        if (
+          typeof path === "string" &&
+          (path.indexOf("three/") === 0 ||
+            (currentFile &&
+              String(currentFile).indexOf("three/") === 0 &&
+              path.charAt(0) === "."))
+        ) {
+          const canon =
+            path.indexOf("three/") === 0
+              ? canonicalizeThreeAddon(path)
+              : resolveThreeAddonRelative(path, currentFile);
+          if (!canon || threeAddonSources[canon] == null) {
+            throw new Error(
+              'Preview supports three core plus OrbitControls, GLTFLoader, and BufferGeometryUtils only. Remove "' +
+                path +
+                '".'
+            );
+          }
+          if (moduleCache[canon]) return moduleCache[canon].exports;
+
+          const fileContent = threeAddonSources[canon];
+          const metaPluginAddon = ({ types: t }) => ({
+            visitor: {
+              MetaProperty(p) {
+                if (p.node.meta.name === "import" && p.node.property.name === "meta") {
+                  p.replaceWith(t.identifier("window._import_meta_mock"));
+                }
+              },
+            },
+          });
+          let transformedAddon;
+          try {
+            transformedAddon = Babel.transform(fileContent, {
+              presets: [
+                ["env", { modules: "commonjs", targets: { browsers: "last 2 chrome versions" } }],
+              ],
+              plugins: [metaPluginAddon],
+              filename: canon + ".js",
+            }).code;
+          } catch (babelErr) {
+            throw new Error(
+              "Compile error in " + canon + ": " + (babelErr.message || babelErr)
+            );
+          }
+          const addonModule = { exports: {} };
+          moduleCache[canon] = addonModule;
+          try {
+            const addonWrapper = new Function(
+              "require",
+              "exports",
+              "module",
+              "__filename",
+              transformedAddon
+            );
+            addonWrapper(
+              (p) => require(p, canon),
+              addonModule.exports,
+              addonModule,
+              canon
+            );
+          } catch (runtimeErr) {
+            delete moduleCache[canon];
+            throw runtimeErr;
+          }
+          return addonModule.exports;
         }
         if (path === "sonner") {
           const toast = Object.assign((m) => console.log("[Toast]", m), {
@@ -521,7 +580,8 @@
     }
 
     function vfsImportsThree(files) {
-      const re = /(?:import\s+[^'";]*from\s*|require\s*\(\s*|import\s*\(\s*)['"]three['"]/;
+      const re =
+        /(?:import\s+[^'";]*from\s*|require\s*\(\s*|import\s*\(\s*)['"]three(?:\/[^'"]*)?['"]/;
       const names = Object.keys(files || {});
       for (let i = 0; i < names.length; i++) {
         const name = names[i];
@@ -530,6 +590,34 @@
         if (typeof content === "string" && re.test(content)) return true;
       }
       return false;
+    }
+
+    const THREE_ADDON_URLS = {
+      "three/examples/jsm/controls/OrbitControls": "/vendor/three-OrbitControls.js",
+      "three/addons/controls/OrbitControls": "/vendor/three-OrbitControls.js",
+      "three/examples/jsm/loaders/GLTFLoader": "/vendor/three-GLTFLoader.js",
+      "three/addons/loaders/GLTFLoader": "/vendor/three-GLTFLoader.js",
+      "three/examples/jsm/utils/BufferGeometryUtils": "/vendor/three-BufferGeometryUtils.js",
+      "three/addons/utils/BufferGeometryUtils": "/vendor/three-BufferGeometryUtils.js",
+    };
+
+    function canonicalizeThreeAddon(spec) {
+      if (!spec || typeof spec !== "string") return null;
+      const trimmed = spec.replace(/\.js$/i, "");
+      return THREE_ADDON_URLS[trimmed] ? trimmed : null;
+    }
+
+    function resolveThreeAddonRelative(path, currentFile) {
+      if (!currentFile || !path || path.charAt(0) !== ".") return null;
+      const parts = String(currentFile).replace(/\.js$/i, "").split("/");
+      parts.pop();
+      const bits = String(path).replace(/\.js$/i, "").split("/");
+      for (let i = 0; i < bits.length; i++) {
+        const part = bits[i];
+        if (part === "..") parts.pop();
+        else if (part !== ".") parts.push(part);
+      }
+      return canonicalizeThreeAddon(parts.join("/"));
     }
 
     let threePromise = null;
@@ -553,6 +641,33 @@
       return threePromise;
     }
 
+    const threeAddonSources = {};
+    let threeAddonsPromise = null;
+    function loadThreeAddons() {
+      if (threeAddonsPromise) return threeAddonsPromise;
+      const uniqueUrls = {};
+      Object.keys(THREE_ADDON_URLS).forEach(function (id) {
+        uniqueUrls[THREE_ADDON_URLS[id]] = true;
+      });
+      const urls = Object.keys(uniqueUrls);
+      threeAddonsPromise = Promise.all(
+        urls.map(function (url) {
+          return fetch(url).then(function (res) {
+            if (!res.ok) throw new Error("Failed to load " + url);
+            return res.text().then(function (text) {
+              Object.keys(THREE_ADDON_URLS).forEach(function (id) {
+                if (THREE_ADDON_URLS[id] === url) threeAddonSources[id] = text;
+              });
+            });
+          });
+        })
+      ).catch(function (err) {
+        threeAddonsPromise = null;
+        throw err;
+      });
+      return threeAddonsPromise;
+    }
+
     let payloadToken = 0;
     async function applyPayload(data) {
       const token = ++payloadToken;
@@ -568,6 +683,7 @@
       if (vfsImportsThree(files)) {
         try {
           await loadThree();
+          await loadThreeAddons();
         } catch (err) {
           if (token !== payloadToken) return;
           showError(err);

@@ -8,14 +8,31 @@ const STANDARD_HINTS =
   /\b(dashboard|auth|crud|database|supabase|backend|orders|inventory|checkout|payments|stripe|multi.?page|admin)\b/i;
 
 /**
- * 3D / browser-game briefs need a second wave and larger files.
- * Narrow on purpose: "three tiers" and "low-poly illustration" stay on the normal path.
+ * 3D / WebGL / browser-game briefs need a second wave and larger files.
+ * Match canvas/mesh asks ("3d object", "webgl", "three.js") but keep
+ * "three pricing tiers" and illustration-only "low-poly" on the normal path.
  */
-const SCENE_BUILD_HINTS =
-  /\b(webgl|three\.js|(?:low-?poly|mid-?poly|3d|browser|driving|racing) game)\b/i;
+const SCENE_BUILD_PATTERNS: RegExp[] = [
+  /\bwebgl\b/i,
+  /\bthree\.js\b/i,
+  /\bthreejs\b/i,
+  /\b(?:low-?poly|mid-?poly|3d|browser|driving|racing)\s+game\b/i,
+  /\bbrowser\s+game\b/i,
+  // "3d object", "3-dimensional cube", "three dimensional sphere"
+  /\b(?:3[-\s]?d|3\s*dimensional|three[-\s]?dimensional)\b[\w\s-]{0,40}\b(?:object|objects|cube|cubes|sphere|spheres|mesh|meshes|model|models|scene|scenes|viewer|canvas|world|shape|shapes|geometry|render(?:er|ing)?|animation)\b/i,
+  // reverse: "cube in 3d", "mesh with three.js"
+  /\b(?:object|objects|cube|cubes|sphere|spheres|mesh|meshes|model|models|scene|scenes|viewer|canvas|shape|shapes)\b[\w\s-]{0,40}\b(?:3[-\s]?d|3\s*dimensional|three[-\s]?dimensional|webgl|three\.js)\b/i,
+];
 
 export function isSceneBuild(prompt: string): boolean {
-  return SCENE_BUILD_HINTS.test(prompt);
+  return SCENE_BUILD_PATTERNS.some((re) => re.test(prompt));
+}
+
+function stripSceneHints(prompt: string): string {
+  return SCENE_BUILD_PATTERNS.reduce((text, re) => {
+    const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;
+    return text.replace(new RegExp(re.source, flags), " ");
+  }, prompt);
 }
 
 export function classifyBuildScale(prompt: string, vfsFileCount = 0): BuildScale {
@@ -48,7 +65,7 @@ export function needsPersistentBackend(prompt: string): boolean {
   // A short game brief is "standard" only so the scene can fit. That bump must not
   // force Supabase onto a driving game. Data words above still opt in.
   if (isSceneBuild(prompt)) {
-    const withoutScene = prompt.replace(SCENE_BUILD_HINTS, " ");
+    const withoutScene = stripSceneHints(prompt);
     return classifyBuildScale(withoutScene) !== "simple";
   }
   return classifyBuildScale(prompt) !== "simple";
