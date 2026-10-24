@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 *.env
+client_secret_*.json
 *.sql
 .txt

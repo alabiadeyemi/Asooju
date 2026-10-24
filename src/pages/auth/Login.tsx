@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Zap, ArrowLeft, Eye, EyeOff, Github, Chrome, Quote, ArrowRight, AlertCircle } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Chrome, Quote, ArrowRight, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Logo } from "@/components/ui/logo";
 
@@ -14,7 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const { loginWithGitHub, loginWithEmail, loginWithGoogle, loginAsGuest } = useAuth();
+  const { loginWithEmail, loginWithGoogle, loginAsGuest } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,26 +136,15 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => loginWithGitHub()}
-                className="h-12 rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 group transition-all"
-              >
-                <Github className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                GitHub
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => loginWithGoogle()}
-                className="h-12 rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 group transition-all"
-              >
-                <Chrome className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                Google
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => loginWithGoogle()}
+              className="w-full h-12 rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 group transition-all"
+            >
+              <Chrome className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              Google
+            </Button>
 
             <div className="pt-8">
               <Button
