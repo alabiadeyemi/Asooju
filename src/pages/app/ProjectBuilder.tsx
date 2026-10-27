@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { generateArchitectureStream, generateBuildPlan, generateTalkReply } from "@/services/ai-service";
+import { generateArchitectureStream, generateBuildPlan, generateTalkReply, getByokKey } from "@/services/ai-service";
 import { useAuth } from "@/hooks/use-auth";
 import { Panel, PanelGroup } from "react-resizable-panels";
 import { BuilderToolbar } from "@/components/app/builder/BuilderToolbar";
@@ -302,14 +302,14 @@ const ProjectBuilder = () => {
   }, [previewError]);
 
   const [activeProvider, setActiveProvider] = useState(
-    () => localStorage.getItem("asooju_active_provider") || "gemini"
+    () => localStorage.getItem("asooju_active_provider") || "openai"
   );
   const [providerKeys, setProviderKeys] = useState<Record<string, string>>(() => ({
-    openai: localStorage.getItem("asooju_openai_key") || "",
-    gemini: localStorage.getItem("asooju_gemini_key") || "",
-    grok: localStorage.getItem("asooju_grok_key") || "",
-    claude: localStorage.getItem("asooju_claude_key") || "",
-    deepseek: localStorage.getItem("asooju_deepseek_key") || "",
+    openai: getByokKey("openai"),
+    gemini: getByokKey("gemini"),
+    grok: getByokKey("grok"),
+    claude: getByokKey("claude"),
+    deepseek: getByokKey("deepseek"),
   }));
   const setProviderKey = (provider: string, key: string) => {
     setProviderKeys((prev) => ({ ...prev, [provider]: key }));
