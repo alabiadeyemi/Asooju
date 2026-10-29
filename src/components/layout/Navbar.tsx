@@ -1,14 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  Menu, X, Zap, Github, MessageSquare,
-  Sparkles, Layout, Settings, LogIn, UserPlus,
+  Menu, X, Github, MessageSquare,
+  Sparkles, Layout, LogIn, UserPlus,
   ChevronRight, Globe
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
+import { useMobileDrawer } from "@/hooks/use-mobile-drawer";
 import { Logo } from "@/components/ui/logo";
+import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/templates", label: "Templates", icon: Layout },
@@ -18,18 +20,19 @@ const navLinks = [
 ];
 
 export const Navbar = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const {
+    open: mobileOpen,
+    openDrawer,
+    closeDrawer,
+    overlayInteractive,
+    onOverlayPointerDown,
+  } = useMobileDrawer();
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  // Prevent scroll when sidebar is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-  }, [mobileOpen]);
+    closeDrawer();
+  }, [location.pathname, closeDrawer]);
 
   return (
     <>
@@ -83,8 +86,11 @@ export const Navbar = () => {
 
           {/* Mobile toggle */}
           <button
-            className="md:hidden p-2 text-foreground/80"
-            onClick={() => setMobileOpen(true)}
+            type="button"
+            className="md:hidden p-2 text-foreground/80 touch-manipulation"
+            onClick={openDrawer}
+            aria-label="Open navigation"
+            aria-expanded={mobileOpen}
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -99,28 +105,35 @@ export const Navbar = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+              onPointerDown={onOverlayPointerDown}
+              onClick={onOverlayPointerDown}
+              aria-hidden
+              className={cn(
+                "fixed inset-0 bg-black/60 z-[60]",
+                !overlayInteractive && "pointer-events-none"
+              )}
             />
 
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              transition={{ type: "tween", duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
               className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-[#060606] border-l border-white/10 z-[70] shadow-2xl flex flex-col"
             >
               <div className="p-6 border-b border-white/5 flex items-center justify-between">
                 <Logo size="sm" showText />
                 <button
-                  onClick={() => setMobileOpen(false)}
-                  className="p-2 text-muted-foreground hover:text-white"
+                  type="button"
+                  onClick={closeDrawer}
+                  className="p-2 text-muted-foreground hover:text-white touch-manipulation"
+                  aria-label="Close navigation"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-8">
                 {/* Auth Section */}
                 <div className="grid grid-cols-1 gap-3">
                   {user ? (
@@ -135,22 +148,29 @@ export const Navbar = () => {
                         </div>
                       </div>
                       <Button className="bg-white text-black font-bold h-12 rounded-xl w-full" asChild>
-                        <Link to="/app" onClick={() => setMobileOpen(false)}>Go to Dashboard</Link>
+                        <Link to="/app" onClick={closeDrawer}>Go to Dashboard</Link>
                       </Button>
-                      <Button variant="outline" className="border-white/10 text-white/40 h-10 rounded-xl w-full" onClick={() => { logout(); setMobileOpen(false); }}>
+                      <Button
+                        variant="outline"
+                        className="border-white/10 text-white/40 h-10 rounded-xl w-full"
+                        onClick={() => {
+                          logout();
+                          closeDrawer();
+                        }}
+                      >
                         Sign Out
                       </Button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
                       <Button variant="outline" className="glass border-white/10 text-white rounded-xl h-12" asChild>
-                        <Link to="/auth/login" onClick={() => setMobileOpen(false)}>
+                        <Link to="/auth/login" onClick={closeDrawer}>
                           <LogIn className="w-4 h-4 mr-2" />
                           Login
                         </Link>
                       </Button>
                       <Button className="bg-white text-black hover:bg-white/90 rounded-xl h-12 font-bold" asChild>
-                        <Link to="/auth/signup" onClick={() => setMobileOpen(false)}>
+                        <Link to="/auth/signup" onClick={closeDrawer}>
                           <UserPlus className="w-4 h-4 mr-2" />
                           Join
                         </Link>
@@ -166,7 +186,7 @@ export const Navbar = () => {
                     <Link
                       key={link.href}
                       to={link.href}
-                      onClick={() => setMobileOpen(false)}
+                      onClick={closeDrawer}
                       className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors group"
                     >
                       <div className="flex items-center gap-3">
@@ -204,7 +224,7 @@ export const Navbar = () => {
                     Unlock unlimited generations and dedicated infrastructure for your team.
                   </p>
                   <Button variant="link" className="p-0 h-auto text-primary text-xs font-bold" asChild>
-                    <Link to="/pricing" onClick={() => setMobileOpen(false)}>Upgrade now →</Link>
+                    <Link to="/pricing" onClick={closeDrawer}>Upgrade now →</Link>
                   </Button>
                 </div>
               </div>

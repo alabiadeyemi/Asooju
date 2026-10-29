@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/hooks/use-auth";
+import { useMobileDrawer } from "@/hooks/use-mobile-drawer";
 import {
   Tooltip,
   TooltipContent,
@@ -44,7 +45,13 @@ export const AppLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, isGuest, user } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const {
+    open: mobileOpen,
+    closeDrawer: closeMobile,
+    toggleDrawer: toggleMobile,
+    overlayInteractive,
+    onOverlayPointerDown,
+  } = useMobileDrawer();
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -66,6 +73,11 @@ export const AppLayout = () => {
     }
   }, [isBuilder]);
 
+  // Close drawer on navigation (mobile)
+  useEffect(() => {
+    closeMobile();
+  }, [location.pathname, closeMobile]);
+
   const handleSignOut = async () => {
     await logout();
     navigate("/");
@@ -84,7 +96,7 @@ export const AppLayout = () => {
       <Link
         key={item.href}
         to={item.href}
-        onClick={() => setMobileOpen(false)}
+        onClick={closeMobile}
         className={cn(
           "flex items-center rounded-lg text-[13px] font-medium transition-all group relative",
           collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
@@ -119,18 +131,20 @@ export const AppLayout = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#020202]">
+    <div className="flex h-dvh overflow-hidden bg-[#020202]">
       <button
-        className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-black/80 border border-white/10 backdrop-blur-xl"
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label="Toggle navigation"
+        type="button"
+        className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-black/80 border border-white/10 touch-manipulation"
+        onClick={toggleMobile}
+        aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+        aria-expanded={mobileOpen}
       >
         {mobileOpen ? <X className="h-4 w-4 text-white" /> : <Menu className="h-4 w-4 text-white" />}
       </button>
 
       <aside
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-40 border-r border-white/5 bg-[#080808] flex flex-col transition-all duration-200 ease-out",
+          "fixed lg:static inset-y-0 left-0 z-40 border-r border-white/5 bg-[#080808] flex flex-col transition-[transform,width] duration-200 ease-out will-change-transform",
           collapsed ? "lg:w-14" : "lg:w-56",
           "w-56",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -170,7 +184,7 @@ export const AppLayout = () => {
           </div>
         )}
 
-        <div className={cn("flex-1 overflow-y-auto py-3 space-y-5", collapsed ? "px-1.5" : "px-2.5")}>
+        <div className={cn("flex-1 overflow-y-auto overscroll-contain py-3 space-y-5", collapsed ? "px-1.5" : "px-2.5")}>
           <div>
             {!collapsed && (
               <p className="px-2.5 text-[9px] uppercase font-bold tracking-[0.18em] text-muted-foreground/40 mb-2">
@@ -238,8 +252,13 @@ export const AppLayout = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-md"
-            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "lg:hidden fixed inset-0 z-30 bg-black/60",
+              !overlayInteractive && "pointer-events-none"
+            )}
+            onPointerDown={onOverlayPointerDown}
+            onClick={onOverlayPointerDown}
+            aria-hidden
           />
         )}
       </AnimatePresence>
