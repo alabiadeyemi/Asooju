@@ -252,8 +252,28 @@ Asooju is a Vite SPA + `api/*.ts` serverless functions.
 - `vercel.json` sets `maxDuration: 60` for AI routes (`api/ai/*`, `api/claude.ts`).
 - Keep `"type": "module"` in `package.json` (Vite). API handlers use `export default`.
 - Do not import `@/` path aliases from `api/` — use relative imports into `src/lib` (already required for `/api/ai/generate`).
+- Platform provider: `PLATFORM_AI_PROVIDER=gemini|deepseek` plus the matching `PLATFORM_*_API_KEY`. `/api/ai/gemini` (compat URL) resolves the provider server-side.
 
 Local Vite mounts the same `api/*.ts` files for Stripe + AI proxies.
+
+### Static nginx + API (VPS)
+If you serve `dist/` from nginx alone, **POST `/api/*` returns nginx 405** (HTML). Run the API process and proxy it:
+
+```bash
+npm run build
+npm run start:api   # 127.0.0.1:8787 — loads .env PLATFORM_* keys
+```
+
+```nginx
+location /api/ {
+  proxy_pass http://127.0.0.1:8787;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header Authorization $http_authorization;
+  proxy_set_header Content-Type $content_type;
+  proxy_read_timeout 120s;
+}
+```
 
 ---
 
@@ -268,6 +288,8 @@ Local Vite mounts the same `api/*.ts` files for Stripe + AI proxies.
 | Projects don’t sync | Not signed in (guest) **or** `schema.sql` not applied |
 | Claude BYOK CORS errors | Use local `/api/claude` proxy via `npm run dev` (already configured) |
 | Env not loading | File must be named `.env` at repo root; restart Vite |
+| Platform gen **405** / nginx HTML | SPA is static; `/api` is not reaching Node. On VPS: run `npm run start:api` and nginx `proxy_pass` `/api/` to `127.0.0.1:8787`. On Vercel: ensure `api/` functions deploy (not static-only). Or use BYOK. |
+| Admin set DeepSeek but Gemini used | Set `PLATFORM_AI_PROVIDER=deepseek` **and** `PLATFORM_DEEPSEEK_API_KEY` on the **API host** env (restart `start:api` / redeploy). Live route `/api/ai/gemini` now honors that. |
 
 ---
 

@@ -16,7 +16,6 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/vendor/(.*)", "destination": "/vendor/$1" },
     { "source": "/preview-sandbox.html", "destination": "/preview-sandbox.html" },
     { "source": "/((?!api/|vendor/|preview-sandbox\\.html|assets/).*)", "destination": "/index.html" }

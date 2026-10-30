@@ -92,7 +92,7 @@ In the app: Settings → Billing for credit balance + Stripe portal; Settings �
 
 - **OpenAI / Gemini / Grok / DeepSeek (BYOK)** — browser calls
 - **Claude (BYOK)** — via `/api/claude` proxy
-- **Platform (no BYOK)** — `/api/ai/gemini` with server key + credit spend/refund
+- **Platform (no BYOK)** — `/api/ai/gemini` (compat URL) with server key + credit spend/refund; provider from `PLATFORM_AI_PROVIDER` (`gemini` \| `deepseek`)
 
 Gemini uses Generative Language REST with `x-goog-api-key` (supports new `AQ.` auth keys).
 

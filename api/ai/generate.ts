@@ -22,6 +22,10 @@ import {
   RateLimitError,
 } from "../_lib/rate-limit";
 import { GenerateRequestSchema, zodErrorMessage } from "../_lib/schemas";
+import {
+  platformAiNotConfiguredMessage,
+  resolvePlatformAi,
+} from "../_lib/platform-ai";
 
 function normalizeFiles(data: any): { path: string; content: string }[] {
   const files: { path: string; content: string }[] = Array.isArray(data?.files)
@@ -90,6 +94,7 @@ export default async function handler(req: any, res: any) {
 
     let apiKey = byokKey;
     let usePlatform = false;
+    let platformProvider = "";
 
     if (!apiKey) {
       auth = await userFromBearer(req.headers.authorization || req.headers.Authorization);
@@ -108,21 +113,17 @@ export default async function handler(req: any, res: any) {
       trackingUserId = auth.user.id;
 
       usePlatform = true;
-      apiKey =
-        process.env.PLATFORM_GEMINI_API_KEY ||
-        process.env.GEMINI_API_KEY ||
-        process.env.PLATFORM_DEEPSEEK_API_KEY ||
-        process.env.DEEPSEEK_API_KEY ||
-        "";
-      if (!apiKey) {
+      const platform = resolvePlatformAi();
+      if (!platform) {
         writeNdjson(res, {
           type: "error",
-          message:
-            "Platform AI not configured (PLATFORM_GEMINI_API_KEY or PLATFORM_DEEPSEEK_API_KEY).",
+          message: platformAiNotConfiguredMessage(),
         });
         res.end();
         return;
       }
+      apiKey = platform.apiKey;
+      platformProvider = platform.provider;
 
       generationId = newGenerationId(
         String(req.headers["x-generation-id"] || body.generationId || "")
@@ -150,12 +151,7 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const effectiveProvider = usePlatform
-      ? process.env.PLATFORM_AI_PROVIDER ||
-        (process.env.PLATFORM_DEEPSEEK_API_KEY || process.env.DEEPSEEK_API_KEY
-          ? "deepseek"
-          : "gemini")
-      : provider;
+    const effectiveProvider = usePlatform ? platformProvider || "gemini" : provider;
 
     const scale = classifyBuildScale(prompt, Object.keys(vfs).length);
     const budget = waveBudget(scale);

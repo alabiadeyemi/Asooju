@@ -1088,7 +1088,13 @@ async function generateWithPlatformGemini(
     timeoutMs: 120000,
   });
 
-  const data = await res.json().catch(() => ({}));
+  const rawText = await res.text().catch(() => "");
+  let data: any = {};
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    data = {};
+  }
   if (res.status === 402 || data?.error === "NO_CREDITS") {
     throw new Error(
       data?.message ||
@@ -1096,6 +1102,15 @@ async function generateWithPlatformGemini(
     );
   }
   if (!res.ok) {
+    // nginx/static hosts return HTML 405 when /api/* is not proxied to Node
+    if (
+      res.status === 405 ||
+      (/nginx|405 Not Allowed|<!doctype html/i.test(rawText) && res.status >= 400)
+    ) {
+      throw new Error(
+        "Platform API is unreachable (HTTP 405). /api must be proxied to the Node API — static nginx alone cannot run generation. Use BYOK under Settings, or fix hosting (see HOW_TO_RUN)."
+      );
+    }
     throw new Error(data?.error || `Platform generation failed (${res.status})`);
   }
 

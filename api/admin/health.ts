@@ -1,5 +1,6 @@
 import { applyCors, handleOptions, sendJson, getSupabaseAdmin } from "../_lib/http";
 import { requireAdmin } from "../_lib/admin-auth";
+import { resolvePlatformAi } from "../_lib/platform-ai";
 
 /**
  * GET /api/admin/health — non-secret env + connectivity checks for operators.
@@ -36,13 +37,15 @@ export default async function handler(req: any, res: any) {
     stripePricePro: {
       ok: Boolean(process.env.STRIPE_PRICE_PRO),
     },
-    platformAi: {
-      ok: Boolean(
-        process.env.PLATFORM_GEMINI_API_KEY ||
-          process.env.PLATFORM_DEEPSEEK_API_KEY
-      ),
-      detail: process.env.PLATFORM_AI_PROVIDER || undefined,
-    },
+    platformAi: (() => {
+      const resolved = resolvePlatformAi();
+      return {
+        ok: Boolean(resolved),
+        detail: resolved
+          ? `${resolved.provider} (${resolved.reason})`
+          : process.env.PLATFORM_AI_PROVIDER || "not configured",
+      };
+    })(),
   };
 
   let supabasePing: { ok: boolean; detail?: string } = {

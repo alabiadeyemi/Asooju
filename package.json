@@ -14,7 +14,8 @@
     "test:fixes": "vitest run src/test/fix-roadmap-smoke.test.ts",
     "test:watch": "vitest",
     "validate:templates": "tsx scripts/validate-templates.ts",
-    "smoke:templates": "tsx scripts/smoke-templates.ts"
+    "smoke:templates": "tsx scripts/smoke-templates.ts",
+    "start:api": "tsx scripts/api-server.ts"
   },
   "dependencies": {
     "@babel/standalone": "^7.29.1",
