@@ -1,6 +1,13 @@
 /**
- * Standalone Node host for /api/* (Vercel-style handlers).
- * Use behind nginx when the SPA is static-only:
+ * Node host for /api/* (Vercel-style handlers) + optional SPA from dist/.
+ *
+ * API only (behind nginx that already serves static files):
+ *   npm run start:api
+ *
+ * Full stack (Node serves dist + API — simplest nginx proxy_pass /):
+ *   npm run build && npm start
+ *
+ * nginx (API-only proxy — keep path /api/... intact, no trailing slash on proxy_pass):
  *
  *   location /api/ {
  *     proxy_pass http://127.0.0.1:8787;
@@ -10,18 +17,41 @@
  *     proxy_set_header Content-Type $http_content_type;
  *     proxy_read_timeout 120s;
  *   }
- *
- * Run: npm run start:api
  */
+import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { loadEnv } from "vite";
 
 const PORT = Number(process.env.API_PORT || process.env.PORT || 8787);
+// 0.0.0.0 required for Coolify/Docker reverse proxy; override with API_HOST=127.0.0.1 for local-only
+const HOST = process.env.API_HOST || "0.0.0.0";
 const ROOT = process.cwd();
+const DIST = path.join(ROOT, "dist");
+const SERVE_STATIC =
+  process.env.SERVE_STATIC === "1" ||
+  process.env.SERVE_STATIC === "true" ||
+  process.argv.includes("--static");
 
-// Match local Vite plugin + Vercel filesystem routes
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".map": "application/json",
+  ".txt": "text/plain; charset=utf-8",
+};
+
+/** Match local Vite plugin + Vercel filesystem routes */
 const ROUTES: Record<string, string> = {
   "/api/stripe/checkout": "api/stripe/checkout.ts",
   "/api/stripe/portal": "api/stripe/portal.ts",
@@ -48,38 +78,129 @@ for (const [k, v] of Object.entries(loadEnv("development", ROOT, ""))) {
   if (process.env[k] === undefined) process.env[k] = v;
 }
 
+const handlerCache = new Map<
+  string,
+  (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void> | void
+>();
+
 async function loadHandler(rel: string) {
+  const cached = handlerCache.get(rel);
+  if (cached) return cached;
   const abs = path.join(ROOT, rel);
   const mod = await import(pathToFileURL(abs).href);
   if (typeof mod.default !== "function") {
     throw new Error(`No default export: ${rel}`);
   }
-  return mod.default as (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void> | void;
+  const handler = mod.default as (
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) => Promise<void> | void;
+  handlerCache.set(rel, handler);
+  return handler;
+}
+
+function sendJson(res: http.ServerResponse, status: number, body: unknown) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(body));
+}
+
+function safeJoinDist(urlPath: string): string | null {
+  const decoded = decodeURIComponent(urlPath.split("?")[0] || "/");
+  const rel = decoded === "/" ? "/index.html" : decoded;
+  const abs = path.normalize(path.join(DIST, rel));
+  if (!abs.startsWith(DIST)) return null;
+  return abs;
+}
+
+function serveStatic(req: http.IncomingMessage, res: http.ServerResponse): boolean {
+  if (!SERVE_STATIC) return false;
+  if (!fs.existsSync(DIST)) {
+    sendJson(res, 503, {
+      error: "dist/ missing — run npm run build before npm start",
+    });
+    return true;
+  }
+
+  const urlPath = (req.url || "/").split("?")[0] || "/";
+  let filePath = safeJoinDist(urlPath);
+  if (!filePath) {
+    res.statusCode = 403;
+    res.end("Forbidden");
+    return true;
+  }
+
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    // SPA fallback
+    filePath = path.join(DIST, "index.html");
+  }
+  if (!fs.existsSync(filePath)) {
+    res.statusCode = 404;
+    res.end("Not found");
+    return true;
+  }
+
+  const ext = path.extname(filePath).toLowerCase();
+  res.statusCode = 200;
+  res.setHeader("Content-Type", MIME[ext] || "application/octet-stream");
+  if (ext === ".html") {
+    res.setHeader("Cache-Control", "no-cache");
+  } else if (urlPath.startsWith("/assets/")) {
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  }
+  fs.createReadStream(filePath).pipe(res);
+  return true;
 }
 
 const server = http.createServer(async (req, res) => {
   try {
-    const url = (req.url || "").split("?")[0];
-    const file = ROUTES[url || ""];
-    if (!file) {
-      res.statusCode = 404;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: `No API route for ${url}` }));
+    const url = (req.url || "").split("?")[0] || "/";
+
+    // Lightweight probe so nginx proxy can be verified without auth
+    if (url === "/api/healthz") {
+      const { resolvePlatformAi } = await import("../api/_lib/platform-ai.ts");
+      const platform = resolvePlatformAi();
+      sendJson(res, 200, {
+        ok: true,
+        service: "asooju-api",
+        platformProvider: platform?.provider || null,
+        platformReason: platform?.reason || null,
+      });
       return;
     }
-    const handler = await loadHandler(file);
-    await handler(req, res);
+
+    const file = ROUTES[url];
+    if (file) {
+      const handler = await loadHandler(file);
+      await handler(req, res);
+      return;
+    }
+
+    if (url.startsWith("/api/")) {
+      sendJson(res, 404, { error: `No API route for ${url}` });
+      return;
+    }
+
+    if (serveStatic(req, res)) return;
+
+    sendJson(res, 404, {
+      error: `No API route for ${url}. Start with --static (npm start) to serve the SPA, or proxy only /api/ from nginx.`,
+    });
   } catch (e: any) {
     console.error("[api-server]", e);
     if (!res.headersSent) {
-      res.statusCode = 500;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: e?.message || "API server error" }));
+      sendJson(res, 500, { error: e?.message || "API server error" });
     }
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`[api-server] listening on http://127.0.0.1:${PORT}`);
-  console.log(`[api-server] platform provider env: ${process.env.PLATFORM_AI_PROVIDER || "(unset)"}`);
+server.listen(PORT, HOST, () => {
+  console.log(`[api-server] http://${HOST}:${PORT}`);
+  console.log(
+    `[api-server] PLATFORM_AI_PROVIDER=${process.env.PLATFORM_AI_PROVIDER || "(unset)"}`
+  );
+  console.log(
+    `[api-server] static=${SERVE_STATIC ? `on (${DIST})` : "off (API only — nginx must proxy /api/)"}`
+  );
+  console.log(`[api-server] probe: GET /api/healthz`);
 });

@@ -1,7 +1,7 @@
 /**
  * Parse / recover agent JSON responses (truncated streams, markdown fences).
  */
-import { extractCompletedFilesFromPartialJson } from "@/lib/generation-prompt";
+import { extractCompletedFilesFromPartialJson } from "./generation-prompt";
 
 export type ParseModelJsonResult = {
   data: Record<string, unknown>;

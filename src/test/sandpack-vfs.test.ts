@@ -15,6 +15,17 @@ describe("sandpack-vfs", () => {
     expect(files["/package.json"]).toBeUndefined();
     expect(files["/vite.config.ts"]).toContain("@vitejs/plugin-react");
     expect(files["/vite.config.ts"]).not.toContain("plugin-react-swc");
+    // Nodebox has no readline.clearScreenDown — Vite must not clear the TTY
+    expect(files["/vite.config.ts"]).toContain("clearScreen: false");
+  });
+
+  it("always injects Sandpack vite.config (ignores project export vite config)", () => {
+    const files = prepareSandpackPreviewFiles({
+      "App.tsx": "export default function App(){return null}",
+      "vite.config.ts": "export default { clearScreen: true }",
+    });
+    expect(files["/vite.config.ts"]).toContain("clearScreen: false");
+    expect(files["/vite.config.ts"]).not.toContain("clearScreen: true");
   });
 
   it("does not inject export main.tsx (template uses /index.tsx)", () => {

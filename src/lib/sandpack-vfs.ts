@@ -20,12 +20,16 @@ const PREVIEW_SKIP = new Set([
   ".gitignore",
 ]);
 
-/** Vite config aligned with Sandpack nodebox (plugin-react + vite 4), not export scaffold (SWC + vite 5). */
+/**
+ * Vite config aligned with Sandpack nodebox (plugin-react + vite 4), not export scaffold (SWC + vite 5).
+ * clearScreen: false — Nodebox readline lacks clearScreenDown; Vite's default clear crashes Live blank.
+ */
 const SANDPACK_VITE_CONFIG = `import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  clearScreen: false,
   plugins: [react()],
   resolve: {
     alias: {

@@ -256,24 +256,18 @@ Asooju is a Vite SPA + `api/*.ts` serverless functions.
 
 Local Vite mounts the same `api/*.ts` files for Stripe + AI proxies.
 
-### Static nginx + API (VPS)
-If you serve `dist/` from nginx alone, **POST `/api/*` returns nginx 405** (HTML). Run the API process and proxy it:
+### Coolify (recommended) — fixes platform HTTP 405
+
+Static-only deploys make `POST /api/*` return nginx **405**.  
+Use the repo **`Dockerfile`**: one container = SPA + `/api`. No hand-edited nginx.
+
+→ [`deploy/COOLIFY.md`](deploy/COOLIFY.md)
 
 ```bash
-npm run build
-npm run start:api   # 127.0.0.1:8787 — loads .env PLATFORM_* keys
+curl -sS https://asooju.com/api/healthz   # must be JSON, not HTML 405
 ```
 
-```nginx
-location /api/ {
-  proxy_pass http://127.0.0.1:8787;
-  proxy_http_version 1.1;
-  proxy_set_header Host $host;
-  proxy_set_header Authorization $http_authorization;
-  proxy_set_header Content-Type $content_type;
-  proxy_read_timeout 120s;
-}
-```
+Bare VPS (optional): [`deploy/nginx-asooju.conf.example`](deploy/nginx-asooju.conf.example) + `npm run start:api`.
 
 ---
 
@@ -288,7 +282,7 @@ location /api/ {
 | Projects don’t sync | Not signed in (guest) **or** `schema.sql` not applied |
 | Claude BYOK CORS errors | Use local `/api/claude` proxy via `npm run dev` (already configured) |
 | Env not loading | File must be named `.env` at repo root; restart Vite |
-| Platform gen **405** / nginx HTML | SPA is static; `/api` is not reaching Node. On VPS: run `npm run start:api` and nginx `proxy_pass` `/api/` to `127.0.0.1:8787`. On Vercel: ensure `api/` functions deploy (not static-only). Or use BYOK. |
+| Platform gen **405** / nginx HTML | Coolify is on **static-only**. Switch the resource to the repo **Dockerfile** (see `deploy/COOLIFY.md`). Confirm `curl https://asooju.com/api/healthz` returns JSON. Or use BYOK. |
 | Admin set DeepSeek but Gemini used | Set `PLATFORM_AI_PROVIDER=deepseek` **and** `PLATFORM_DEEPSEEK_API_KEY` on the **API host** env (restart `start:api` / redeploy). Live route `/api/ai/gemini` now honors that. |
 
 ---
