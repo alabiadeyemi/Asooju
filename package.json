@@ -16,7 +16,7 @@
     "validate:templates": "tsx scripts/validate-templates.ts",
     "smoke:templates": "tsx scripts/smoke-templates.ts",
     "start:api": "tsx scripts/api-server.ts",
-    "start": "tsx scripts/api-server.ts --static"
+    "start": "vite build && tsx scripts/api-server.ts --static"
   },
   "dependencies": {
     "@babel/standalone": "^7.29.1",
