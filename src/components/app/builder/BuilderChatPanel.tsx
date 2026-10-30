@@ -126,7 +126,7 @@ function MessageBody({ content, stream }: { content: string; stream?: boolean })
 
   const lines = shown.split("\n");
   return (
-    <div className="space-y-1">
+    <div className="min-w-0 max-w-full space-y-1 overflow-x-hidden break-words [overflow-wrap:anywhere]">
       {lines.map((line, i) => {
         if (
           line === "Plan" ||
@@ -138,7 +138,7 @@ function MessageBody({ content, stream }: { content: string; stream?: boolean })
           return (
             <div
               key={i}
-              className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 pt-2 first:pt-0"
+              className="pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 first:pt-0"
             >
               {line}
             </div>
@@ -146,17 +146,23 @@ function MessageBody({ content, stream }: { content: string; stream?: boolean })
         }
         if (/^\d+\.\s/.test(line) || line.startsWith("• ")) {
           return (
-            <div key={i} className="text-[12px] text-white/60 font-mono pl-0.5">
+            <div
+              key={i}
+              className="min-w-0 break-words pl-0.5 font-mono text-[12px] text-white/60 [overflow-wrap:anywhere]"
+            >
               {line}
             </div>
           );
         }
         if (!line.trim()) return <div key={i} className="h-1.5" />;
         return (
-          <p key={i} className="text-[12.5px] leading-relaxed text-inherit">
+          <p
+            key={i}
+            className="min-w-0 break-words text-[12.5px] leading-relaxed text-inherit [overflow-wrap:anywhere]"
+          >
             {line}
             {!done && i === lines.length - 1 && (
-              <span className="inline-block w-1.5 h-3 ml-0.5 bg-white/35 animate-pulse align-middle" />
+              <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-white/35 align-middle" />
             )}
           </p>
         );
@@ -452,9 +458,9 @@ function SuggestionRail({
 }) {
   if (!suggestions.length) return null;
   return (
-    <div className="mb-2 -mx-0.5">
+    <div className="mb-2 max-w-full min-w-0 overflow-x-hidden">
       <div
-        className="flex gap-1.5 overflow-x-auto px-0.5 pb-0.5 custom-scrollbar"
+        className="custom-scrollbar flex max-w-full gap-1.5 overflow-x-auto overscroll-x-contain px-0.5 pb-0.5"
         style={{ scrollbarWidth: "thin" }}
       >
         {suggestions.map((s) => (
@@ -637,7 +643,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   };
 
   return (
-    <aside className="h-full bg-[#09090b] flex flex-col overflow-hidden relative border-l border-white/[0.06]">
+    <aside className="relative flex h-full min-w-0 max-w-full flex-col overflow-x-hidden overflow-hidden border-l border-white/[0.06] bg-[#09090b]">
       <div className="h-10 border-b border-white/[0.06] bg-[#0a0a0b] px-3 flex items-center justify-between shrink-0 gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
@@ -724,12 +730,12 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar">
-        <div className="space-y-3">
+      <div className="custom-scrollbar min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3">
+        <div className="min-w-0 space-y-3">
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
+              className={`flex min-w-0 flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
             >
               {m.role === "assistant" && (
                 <span className="text-[9px] uppercase tracking-wider text-white/25 mb-1 px-0.5">
@@ -778,7 +784,9 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 {m.role === "assistant" ? (
                   <MessageBody content={m.content} stream={Boolean(m.meta?.stream)} />
                 ) : m.content.trim() ? (
-                  <div className="whitespace-pre-wrap">{m.content}</div>
+                  <div className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                    {m.content}
+                  </div>
                 ) : null}
 
                 {m.role === "assistant" && m.meta?.kind === "plan" && m.meta.plan && (

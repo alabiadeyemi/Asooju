@@ -55,33 +55,30 @@ export function useMobileDrawer() {
     return () => window.clearTimeout(id);
   }, [open]);
 
-  // iOS needs position:fixed lock — overflow:hidden alone still rubber-bands.
+  // Lock scroll without body position:fixed — that offsets fixed drawers on iOS
+  // ("almost open" / clipped right edge).
   useEffect(() => {
     if (!open) return;
 
+    const html = document.documentElement;
     const body = document.body;
-    const scrollY = window.scrollY;
     const prev = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-      touchAction: body.style.touchAction,
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      bodyTouch: body.style.touchAction,
+      overscroll: body.style.overscrollBehavior,
     };
 
+    html.style.overflow = "hidden";
     body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.width = "100%";
     body.style.touchAction = "none";
+    body.style.overscrollBehavior = "none";
 
     return () => {
-      body.style.overflow = prev.overflow;
-      body.style.position = prev.position;
-      body.style.top = prev.top;
-      body.style.width = prev.width;
-      body.style.touchAction = prev.touchAction;
-      window.scrollTo(0, scrollY);
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.touchAction = prev.bodyTouch;
+      body.style.overscrollBehavior = prev.overscroll;
     };
   }, [open]);
 

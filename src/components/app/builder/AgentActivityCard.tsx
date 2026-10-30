@@ -95,7 +95,7 @@ export const AgentActivityCard: React.FC<AgentActivityCardProps> = ({
     : `Done · ${doneCount} step${doneCount === 1 ? "" : "s"}`;
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#0a0a0b] overflow-hidden">
+    <div className="max-w-full min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0a0a0b]">
       <button
         type="button"
         onClick={() => setExpanded((o) => !o)}
@@ -160,7 +160,7 @@ export const AgentActivityCard: React.FC<AgentActivityCardProps> = ({
               <div
                 ref={thoughtRef}
                 className={cn(
-                  "px-3 pb-2.5 text-[11.5px] leading-relaxed text-white/50 whitespace-pre-wrap break-words custom-scrollbar",
+                  "custom-scrollbar min-w-0 max-w-full px-3 pb-2.5 text-[11.5px] leading-relaxed text-white/50 whitespace-pre-wrap break-words [overflow-wrap:anywhere]",
                   thoughtExpanded ? "max-h-40 overflow-y-auto" : "max-h-[3.6rem] overflow-hidden"
                 )}
               >
@@ -182,7 +182,7 @@ export const AgentActivityCard: React.FC<AgentActivityCardProps> = ({
                   <p
                     key={`log-${liveLog.length - recentLog.length + i}`}
                     className={cn(
-                      "text-[11.5px] leading-snug",
+                      "min-w-0 break-words text-[11.5px] leading-snug [overflow-wrap:anywhere]",
                       i === recentLog.length - 1 && isGenerating
                         ? "text-white/65"
                         : "text-white/35"

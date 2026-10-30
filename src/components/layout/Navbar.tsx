@@ -6,7 +6,6 @@ import {
   ChevronRight, Globe
 } from "lucide-react";
 import { useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useMobileDrawer } from "@/hooks/use-mobile-drawer";
 import { Logo } from "@/components/ui/logo";
@@ -97,62 +96,56 @@ export const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Sidebar Overlay */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onPointerDown={onOverlayPointerDown}
-              onClick={onOverlayPointerDown}
-              aria-hidden
-              className={cn(
-                "fixed inset-0 bg-black/60 z-[60]",
-                !overlayInteractive && "pointer-events-none"
-              )}
-            />
+      {/* Mobile drawer — CSS slide (Framer x + body position:fixed clipped on iOS) */}
+      {mobileOpen && (
+        <>
+          <div
+            onPointerDown={onOverlayPointerDown}
+            onClick={onOverlayPointerDown}
+            aria-hidden
+            className={cn(
+              "fixed inset-0 z-[60] bg-black/60",
+              !overlayInteractive && "pointer-events-none"
+            )}
+          />
 
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "tween", duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-[#060606] border-l border-white/10 z-[70] shadow-2xl flex flex-col"
-            >
-              <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                <Logo size="sm" showText />
+          <div
+            className="fixed inset-y-0 right-0 z-[70] flex w-[min(100vw-2.5rem,24rem)] max-w-full flex-col overflow-x-hidden border-l border-white/10 bg-[#060606] shadow-2xl"
+            style={{ transform: "translate3d(0,0,0)" }}
+          >
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 p-6 min-w-0">
+                <div className="min-w-0 truncate">
+                  <Logo size="sm" showText />
+                </div>
                 <button
                   type="button"
                   onClick={closeDrawer}
-                  className="p-2 text-muted-foreground hover:text-white touch-manipulation"
+                  className="shrink-0 p-2 text-muted-foreground hover:text-white touch-manipulation"
                   aria-label="Close navigation"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-8">
-                {/* Auth Section */}
+              <div className="min-w-0 flex-1 space-y-8 overflow-x-hidden overflow-y-auto overscroll-contain p-6">
                 <div className="grid grid-cols-1 gap-3">
                   {user ? (
                     <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/5">
-                        <div className="h-10 w-10 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold">
+                      <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 min-w-0">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-hero font-bold text-white">
                           {user.email?.charAt(0).toUpperCase()}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-white truncate max-w-[150px]">{user.email}</span>
-                          <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Active Session</span>
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-sm font-bold text-white">{user.email}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Session</span>
                         </div>
                       </div>
-                      <Button className="bg-white text-black font-bold h-12 rounded-xl w-full" asChild>
+                      <Button className="h-12 w-full rounded-xl bg-white font-bold text-black" asChild>
                         <Link to="/app" onClick={closeDrawer}>Go to Dashboard</Link>
                       </Button>
                       <Button
                         variant="outline"
-                        className="border-white/10 text-white/40 h-10 rounded-xl w-full"
+                        className="h-10 w-full rounded-xl border-white/10 text-white/40"
                         onClick={() => {
                           logout();
                           closeDrawer();
@@ -163,15 +156,15 @@ export const Navbar = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-                      <Button variant="outline" className="glass border-white/10 text-white rounded-xl h-12" asChild>
+                      <Button variant="outline" className="glass h-12 rounded-xl border-white/10 text-white" asChild>
                         <Link to="/auth/login" onClick={closeDrawer}>
-                          <LogIn className="w-4 h-4 mr-2" />
+                          <LogIn className="mr-2 h-4 w-4 shrink-0" />
                           Login
                         </Link>
                       </Button>
-                      <Button className="bg-white text-black hover:bg-white/90 rounded-xl h-12 font-bold" asChild>
+                      <Button className="h-12 rounded-xl bg-white font-bold text-black hover:bg-white/90" asChild>
                         <Link to="/auth/signup" onClick={closeDrawer}>
-                          <UserPlus className="w-4 h-4 mr-2" />
+                          <UserPlus className="mr-2 h-4 w-4 shrink-0" />
                           Join
                         </Link>
                       </Button>
@@ -179,69 +172,68 @@ export const Navbar = () => {
                   )}
                 </div>
 
-                {/* Primary Nav */}
                 <div className="space-y-1">
-                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground mb-4 ml-1">Platform</p>
+                  <p className="mb-4 ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Platform</p>
                   {navLinks.map((link) => (
                     <Link
                       key={link.href}
                       to={link.href}
                       onClick={closeDrawer}
-                      className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors group"
+                      className="group flex min-w-0 items-center justify-between gap-2 rounded-xl p-3 transition-colors hover:bg-white/5"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
-                          <link.icon className="w-4 h-4" />
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-hover:text-primary">
+                          <link.icon className="h-4 w-4" />
                         </div>
-                        <span className="text-[15px] font-medium text-white">{link.label}</span>
+                        <span className="truncate text-[15px] font-medium text-white">{link.label}</span>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground opacity-20" />
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-20" />
                     </Link>
                   ))}
                 </div>
 
-                {/* Advanced Features */}
                 <div className="space-y-1">
-                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground mb-4 ml-1">Engineering</p>
-                  <a href="https://github.com" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group text-muted-foreground hover:text-white">
-                    <Github className="w-4 h-4" />
-                    <span className="text-[15px] font-medium">Source Documentation</span>
+                  <p className="mb-4 ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Engineering</p>
+                  <a
+                    href="https://github.com"
+                    className="group flex min-w-0 items-center gap-3 rounded-xl p-3 text-muted-foreground transition-colors hover:bg-white/5 hover:text-white"
+                  >
+                    <Github className="h-4 w-4 shrink-0" />
+                    <span className="truncate text-[15px] font-medium">Source Documentation</span>
                   </a>
-                  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group text-muted-foreground hover:text-white cursor-pointer">
-                    <Globe className="w-4 h-4" />
-                    <span className="text-[15px] font-medium">System Status</span>
-                    <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <div className="group flex min-w-0 cursor-pointer items-center gap-3 rounded-xl p-3 text-muted-foreground transition-colors hover:bg-white/5 hover:text-white">
+                    <Globe className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-medium">System Status</span>
+                    <div className="ml-auto h-2 w-2 shrink-0 rounded-full bg-green-500 animate-pulse" />
                   </div>
                 </div>
 
-                {/* Promotional Card */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent border border-primary/20">
-                  <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
+                <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/20 to-transparent p-5">
+                  <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
+                    <Sparkles className="h-4 w-4 shrink-0 text-primary" />
                     Pro Access
                   </h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                  <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
                     Unlock unlimited generations and dedicated infrastructure for your team.
                   </p>
-                  <Button variant="link" className="p-0 h-auto text-primary text-xs font-bold" asChild>
+                  <Button variant="link" className="h-auto p-0 text-xs font-bold text-primary" asChild>
                     <Link to="/pricing" onClick={closeDrawer}>Upgrade now →</Link>
                   </Button>
                 </div>
               </div>
 
-              <div className="p-6 border-t border-white/5 bg-black/40">
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+              <div className="shrink-0 border-t border-white/5 bg-black/40 p-6">
+                <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
                   <span>Asooju v2.4.1</span>
                   <div className="flex gap-4">
-                    <Github className="w-4 h-4" />
-                    <MessageSquare className="w-4 h-4" />
+                    <Github className="h-4 w-4" />
+                    <MessageSquare className="h-4 w-4" />
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+        </>
+      )}
     </>
   );
 };
