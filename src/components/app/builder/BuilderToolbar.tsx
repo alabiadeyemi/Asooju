@@ -52,12 +52,14 @@ export const BuilderToolbar: React.FC<BuilderToolbarProps> = ({
   setFilesPanelOpen,
 }) => {
   return (
-    <header className="h-11 border-b border-white/[0.06] bg-[#0a0a0b] flex items-center justify-between px-3 shrink-0 relative z-50">
-      <div className="flex items-center gap-2.5 min-w-0">
+    <header className="relative z-40 flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#0a0a0b] px-3 max-lg:pl-14">
+      <div className="flex min-w-0 items-center gap-2.5">
         {isMobile && (
           <button
+            type="button"
             onClick={() => setMobileExplorerOpen(!mobileExplorerOpen)}
-            className="p-1.5 text-muted-foreground hover:text-white rounded-md hover:bg-white/5"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-white/5 hover:text-white"
+            aria-label={mobileExplorerOpen ? "Close files" : "Open files"}
           >
             <Menu className="w-4 h-4" />
           </button>

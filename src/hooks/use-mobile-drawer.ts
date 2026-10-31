@@ -7,7 +7,7 @@ import {
 } from "react";
 
 /** iOS WebKit synthesizes click after touchend; ignore closes during that window. */
-const CLOSE_GUARD_MS = 400;
+const CLOSE_GUARD_MS = 450;
 
 /**
  * Mobile drawer open state with iOS ghost-click protection.

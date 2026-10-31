@@ -59,8 +59,22 @@ export const AppLayout = () => {
     // Builder pages start collapsed for a Lovable-style canvas
     return /\/app\/projects\/[^/]+/.test(window.location.pathname);
   });
+  // Desktop "collapsed rail" must not apply inside the mobile drawer — icon-only
+  // content there looks like the sidebar failed to open.
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 1023px)").matches : false
+  );
 
   const isBuilder = /\/app\/projects\/[^/]+/.test(location.pathname);
+  const railCollapsed = collapsed && !isNarrow;
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setIsNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
@@ -99,7 +113,7 @@ export const AppLayout = () => {
         onClick={closeMobile}
         className={cn(
           "flex items-center rounded-lg text-[13px] font-medium transition-all group relative",
-          collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
+          railCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
           isActive
             ? "text-primary bg-primary/5"
             : "text-muted-foreground hover:text-white hover:bg-white/5"
@@ -111,14 +125,14 @@ export const AppLayout = () => {
             isActive ? "text-primary" : "opacity-50 group-hover:opacity-100 transition-opacity"
           )}
         />
-        {!collapsed && <span className="truncate">{item.label}</span>}
-        {isActive && !collapsed && (
+        {!railCollapsed && <span className="truncate">{item.label}</span>}
+        {isActive && !railCollapsed && (
           <motion.div layoutId="activeNav" className="absolute left-0 w-0.5 h-3.5 bg-primary rounded-full" />
         )}
       </Link>
     );
 
-    if (!collapsed) return link;
+    if (!railCollapsed) return link;
 
     return (
       <Tooltip key={item.href} delayDuration={0}>
@@ -132,9 +146,10 @@ export const AppLayout = () => {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[#020202]">
+      {/* z-[80]: must sit above builder toolbar (z-50) or Chrome never receives the open tap */}
       <button
         type="button"
-        className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-black/80 border border-white/10 touch-manipulation"
+        className="lg:hidden fixed top-3 left-3 z-[80] p-2 rounded-lg bg-black/80 border border-white/10 touch-manipulation"
         onClick={toggleMobile}
         aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
         aria-expanded={mobileOpen}
@@ -144,8 +159,8 @@ export const AppLayout = () => {
 
       <aside
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-40 border-r border-white/5 bg-[#080808] flex flex-col transition-[transform,width] duration-200 ease-out will-change-transform",
-          collapsed ? "lg:w-14" : "lg:w-56",
+          "fixed lg:static inset-y-0 left-0 z-[70] border-r border-white/5 bg-[#080808] flex flex-col transition-transform duration-200 ease-out",
+          railCollapsed ? "lg:w-14" : "lg:w-56",
           "w-56",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
@@ -153,13 +168,14 @@ export const AppLayout = () => {
         <div
           className={cn(
             "flex h-12 items-center border-b border-white/5 bg-[#0A0A0B] shrink-0",
-            collapsed ? "justify-center px-1" : "justify-between px-3"
+            // Clear the fixed hamburger on mobile
+            isNarrow ? "justify-between pl-14 pr-3" : railCollapsed ? "justify-center px-1" : "justify-between px-3"
           )}
         >
-          <Link to="/" className="hover:opacity-80 transition-opacity min-w-0">
-            {collapsed ? <Logo size="sm" /> : <Logo showText size="sm" />}
+          <Link to="/" className="hover:opacity-80 transition-opacity min-w-0" onClick={closeMobile}>
+            {railCollapsed ? <Logo size="sm" /> : <Logo showText size="sm" />}
           </Link>
-          {!collapsed && (
+          {!railCollapsed && (
             <button
               type="button"
               onClick={toggleCollapsed}
@@ -171,7 +187,7 @@ export const AppLayout = () => {
           )}
         </div>
 
-        {collapsed && (
+        {railCollapsed && (
           <div className="hidden lg:flex justify-center py-2 border-b border-white/5">
             <button
               type="button"
@@ -184,9 +200,9 @@ export const AppLayout = () => {
           </div>
         )}
 
-        <div className={cn("flex-1 overflow-y-auto overscroll-contain py-3 space-y-5", collapsed ? "px-1.5" : "px-2.5")}>
+        <div className={cn("flex-1 overflow-y-auto overscroll-contain py-3 space-y-5", railCollapsed ? "px-1.5" : "px-2.5")}>
           <div>
-            {!collapsed && (
+            {!railCollapsed && (
               <p className="px-2.5 text-[9px] uppercase font-bold tracking-[0.18em] text-muted-foreground/40 mb-2">
                 Main
               </p>
@@ -195,7 +211,7 @@ export const AppLayout = () => {
           </div>
 
           <div>
-            {!collapsed && (
+            {!railCollapsed && (
               <p className="px-2.5 text-[9px] uppercase font-bold tracking-[0.18em] text-muted-foreground/40 mb-2">
                 Settings
               </p>
@@ -204,8 +220,8 @@ export const AppLayout = () => {
           </div>
         </div>
 
-        <div className={cn("border-t border-white/5 bg-[#060606] shrink-0", collapsed ? "p-1.5" : "p-2.5")}>
-          {!collapsed && (
+        <div className={cn("border-t border-white/5 bg-[#060606] shrink-0", railCollapsed ? "p-1.5" : "p-2.5")}>
+          {!railCollapsed && (
             <div className="px-2.5 py-2 rounded-lg bg-white/[0.03] border border-white/5 mb-2">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -218,7 +234,7 @@ export const AppLayout = () => {
               </p>
             </div>
           )}
-          {collapsed ? (
+          {railCollapsed ? (
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <Button
@@ -253,7 +269,7 @@ export const AppLayout = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className={cn(
-              "lg:hidden fixed inset-0 z-30 bg-black/60",
+              "lg:hidden fixed inset-0 z-[60] bg-black/60",
               !overlayInteractive && "pointer-events-none"
             )}
             onPointerDown={onOverlayPointerDown}
