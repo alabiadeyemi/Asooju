@@ -655,63 +655,60 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
         !isMobile && "border-l border-white/[0.06]"
       )}
     >
-      <div className="flex h-10 min-w-0 shrink-0 items-center justify-between gap-1.5 overflow-hidden border-b border-white/[0.06] bg-[#0a0a0b] px-2.5 sm:gap-2 sm:px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden sm:gap-2">
-          {!isMobile && (
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-              Agent
-            </span>
-          )}
-          {onAgentModeChange && (
-            <div className="flex min-w-0 shrink rounded-md border border-white/[0.08] p-0.5">
-              <button
-                type="button"
-                onClick={() => onAgentModeChange("talk")}
-                className={cn(
-                  "flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
-                  agentMode === "talk"
-                    ? "bg-white/10 text-white/85"
-                    : "text-white/30 hover:text-white/50"
-                )}
-                title="Chat only — no file writes"
-              >
-                <MessageSquare className="w-2.5 h-2.5 shrink-0" />
-                {!isMobile && "Talk"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onAgentModeChange("plan")}
-                className={cn(
-                  "flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
-                  agentMode === "plan"
-                    ? "bg-white/10 text-white/85"
-                    : "text-white/30 hover:text-white/50"
-                )}
-                title="Plan without writing code"
-              >
-                <ListChecks className="w-2.5 h-2.5 shrink-0" />
-                {!isMobile && "Plan"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onAgentModeChange("build")}
-                className={cn(
-                  "flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
-                  agentMode === "build"
-                    ? "bg-white/10 text-white/85"
-                    : "text-white/30 hover:text-white/50"
-                )}
-                title="Autopilot after you approve a clear brief"
-              >
-                <Hammer className="w-2.5 h-2.5 shrink-0" />
-                {!isMobile && "Build"}
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="flex min-w-0 shrink-0 items-center gap-1.5 overflow-hidden sm:gap-2">
-          {creditsLabel && !isMobile && (
-            <span className="hidden max-w-[4.5rem] truncate text-[9px] font-mono tabular-nums text-white/35 sm:inline">
+      <div className="flex h-10 min-w-0 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-white/[0.06] bg-[#0a0a0b] px-2.5 md:px-3">
+        {/* No "Agent" label — it stole width on mobile and pushed status off-screen. */}
+        {onAgentModeChange && (
+          <div className="grid w-[10.5rem] shrink-0 grid-cols-3 rounded-md border border-white/[0.08] p-0.5 md:w-[13.5rem]">
+            <button
+              type="button"
+              onClick={() => onAgentModeChange("talk")}
+              className={cn(
+                "flex h-7 items-center justify-center gap-1 rounded px-1 text-[9px] font-semibold uppercase tracking-wider transition-colors",
+                agentMode === "talk"
+                  ? "bg-white/10 text-white/85"
+                  : "text-white/30 hover:text-white/50"
+              )}
+              title="Chat only — no file writes"
+              aria-label="Talk"
+            >
+              <MessageSquare className="h-2.5 w-2.5 shrink-0" />
+              <span className="hidden md:inline">Talk</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onAgentModeChange("plan")}
+              className={cn(
+                "flex h-7 items-center justify-center gap-1 rounded px-1 text-[9px] font-semibold uppercase tracking-wider transition-colors",
+                agentMode === "plan"
+                  ? "bg-white/10 text-white/85"
+                  : "text-white/30 hover:text-white/50"
+              )}
+              title="Plan without writing code"
+              aria-label="Plan"
+            >
+              <ListChecks className="h-2.5 w-2.5 shrink-0" />
+              <span className="hidden md:inline">Plan</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onAgentModeChange("build")}
+              className={cn(
+                "flex h-7 items-center justify-center gap-1 rounded px-1 text-[9px] font-semibold uppercase tracking-wider transition-colors",
+                agentMode === "build"
+                  ? "bg-white/10 text-white/85"
+                  : "text-white/30 hover:text-white/50"
+              )}
+              title="Autopilot after you approve a clear brief"
+              aria-label="Build"
+            >
+              <Hammer className="h-2.5 w-2.5 shrink-0" />
+              <span className="hidden md:inline">Build</span>
+            </button>
+          </div>
+        )}
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5 overflow-hidden md:gap-2">
+          {creditsLabel && (
+            <span className="hidden max-w-[4.5rem] truncate text-[9px] font-mono tabular-nums text-white/35 md:inline">
               {creditsLabel}
             </span>
           )}
@@ -720,28 +717,31 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
               type="button"
               onClick={onToggleAutoFix}
               title="Auto-fix preview/terminal errors"
+              aria-label={`Auto-fix ${autoFixEnabled ? "on" : "off"}`}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
+                "flex h-7 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
                 autoFixEnabled
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300/90"
                   : "border-white/10 text-white/30 hover:text-white/50"
               )}
             >
-              <Zap className="w-2.5 h-2.5 shrink-0" />
-              {!isMobile && <span>Auto-fix </span>}
-              {autoFixEnabled ? "on" : "off"}
+              <Zap className="h-2.5 w-2.5 shrink-0" />
+              <span className="hidden md:inline">Auto-fix</span>
+              <span className="tabular-nums">{autoFixEnabled ? "on" : "off"}</span>
             </button>
           )}
           {isGenerating ? (
-            <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-primary/90">
+            <span className="flex h-7 shrink-0 items-center gap-1.5 text-[10px] text-primary/90">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-40" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
-              {!isMobile && "Running"}
+              <span className="hidden md:inline">Running</span>
             </span>
           ) : (
-            !isMobile && <span className="shrink-0 text-[10px] text-white/25">Ready</span>
+            <span className="hidden h-7 shrink-0 items-center text-[10px] text-white/25 md:inline-flex">
+              Ready
+            </span>
           )}
         </div>
       </div>
