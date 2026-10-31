@@ -2686,6 +2686,7 @@ const ProjectBuilder = () => {
   const showFiles = !isMobile && viewMode === "code" && filesPanelOpen;
   const chatPanel = (
     <BuilderChatPanel
+      isMobile={isMobile}
       messages={messages}
       isGenerating={isGenerating}
       chatInput={chatInput}
@@ -2731,7 +2732,7 @@ const ProjectBuilder = () => {
   );
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-[#020202] text-white overflow-hidden selection:bg-primary/30">
+    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden overflow-hidden bg-[#020202] text-white selection:bg-primary/30">
       <BuilderToolbar
         projectName={projectName}
         projectId={projectId || ""}

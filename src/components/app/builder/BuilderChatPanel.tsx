@@ -97,6 +97,8 @@ interface BuilderChatPanelProps {
   briefReady?: boolean;
   briefSummary?: string;
   onApproveBrief?: () => void;
+  /** Phone layout — compact chrome so the column cannot widen past the viewport. */
+  isMobile?: boolean;
 }
 
 function MessageBody({ content, stream }: { content: string; stream?: boolean }) {
@@ -205,7 +207,10 @@ function PlanCard({
               </div>
               <ul className="mt-0.5 space-y-0.5">
                 {w.goals.map((g, j) => (
-                  <li key={j} className="text-white/40 pl-2 font-mono text-[10px]">
+                  <li
+                    key={j}
+                    className="min-w-0 break-words pl-2 font-mono text-[10px] text-white/40 [overflow-wrap:anywhere]"
+                  >
                     · {g}
                   </li>
                 ))}
@@ -521,6 +526,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   briefReady = false,
   briefSummary = "",
   onApproveBrief,
+  isMobile = false,
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -643,12 +649,19 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   };
 
   return (
-    <aside className="relative flex h-full w-full min-w-0 max-w-full flex-col overflow-hidden border-l border-white/[0.06] bg-[#09090b]">
-      <div className="flex h-10 min-w-0 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-white/[0.06] bg-[#0a0a0b] px-3">
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-            Agent
-          </span>
+    <aside
+      className={cn(
+        "relative flex h-full w-full min-w-0 max-w-full flex-col overflow-hidden bg-[#09090b]",
+        !isMobile && "border-l border-white/[0.06]"
+      )}
+    >
+      <div className="flex h-10 min-w-0 shrink-0 items-center justify-between gap-1.5 overflow-hidden border-b border-white/[0.06] bg-[#0a0a0b] px-2.5 sm:gap-2 sm:px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden sm:gap-2">
+          {!isMobile && (
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              Agent
+            </span>
+          )}
           {onAgentModeChange && (
             <div className="flex min-w-0 shrink rounded-md border border-white/[0.08] p-0.5">
               <button
@@ -662,8 +675,8 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 )}
                 title="Chat only — no file writes"
               >
-                <MessageSquare className="w-2.5 h-2.5" />
-                Talk
+                <MessageSquare className="w-2.5 h-2.5 shrink-0" />
+                {!isMobile && "Talk"}
               </button>
               <button
                 type="button"
@@ -676,8 +689,8 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 )}
                 title="Plan without writing code"
               >
-                <ListChecks className="w-2.5 h-2.5" />
-                Plan
+                <ListChecks className="w-2.5 h-2.5 shrink-0" />
+                {!isMobile && "Plan"}
               </button>
               <button
                 type="button"
@@ -690,14 +703,14 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 )}
                 title="Autopilot after you approve a clear brief"
               >
-                <Hammer className="w-2.5 h-2.5" />
-                Build
+                <Hammer className="w-2.5 h-2.5 shrink-0" />
+                {!isMobile && "Build"}
               </button>
             </div>
           )}
         </div>
-        <div className="flex min-w-0 shrink items-center gap-2 overflow-hidden">
-          {creditsLabel && (
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5 overflow-hidden sm:gap-2">
+          {creditsLabel && !isMobile && (
             <span className="hidden max-w-[4.5rem] truncate text-[9px] font-mono tabular-nums text-white/35 sm:inline">
               {creditsLabel}
             </span>
@@ -714,8 +727,8 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                   : "border-white/10 text-white/30 hover:text-white/50"
               )}
             >
-              <Zap className="w-2.5 h-2.5" />
-              <span className="hidden sm:inline">Auto-fix </span>
+              <Zap className="w-2.5 h-2.5 shrink-0" />
+              {!isMobile && <span>Auto-fix </span>}
               {autoFixEnabled ? "on" : "off"}
             </button>
           )}
@@ -725,16 +738,21 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-40" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
-              Running
+              {!isMobile && "Running"}
             </span>
           ) : (
-            <span className="shrink-0 text-[10px] text-white/25">Ready</span>
+            !isMobile && <span className="shrink-0 text-[10px] text-white/25">Ready</span>
           )}
         </div>
       </div>
 
-      <div className="custom-scrollbar min-h-0 min-w-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3 [scrollbar-gutter:stable]">
-        <div className="w-full min-w-0 max-w-full space-y-3">
+      <div
+        className={cn(
+          "custom-scrollbar min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain py-3",
+          isMobile ? "px-2.5" : "px-3"
+        )}
+      >
+        <div className="box-border w-full min-w-0 max-w-full space-y-3">
           {messages.map((m, i) => (
             <div
               key={i}
@@ -752,13 +770,21 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 </span>
               )}
               <div
-                className={`box-border w-fit max-w-full min-w-0 rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] ${
+                className={cn(
+                  "box-border min-w-0 rounded-xl py-2.5 text-[12.5px] leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word]",
+                  isMobile ? "px-2.5" : "px-3",
+                  // Mobile: pin width to the column so long tokens cannot widen past the phone edge.
+                  isMobile
+                    ? m.role === "user"
+                      ? "w-auto max-w-[min(100%,22rem)]"
+                      : "w-full max-w-full"
+                    : "w-fit max-w-full",
                   m.role === "user"
                     ? "bg-white text-black rounded-br-md"
                     : m.content.startsWith("Error:") || m.content.startsWith("I hit an error")
                       ? "bg-red-500/10 border border-red-500/20 text-red-200/90"
                       : "bg-white/[0.035] border border-white/[0.06] text-white/75 rounded-bl-md"
-                }`}
+                )}
               >
                 {m.attachments && m.attachments.length > 0 && (
                   <div className="mb-2 flex w-full min-w-0 max-w-full flex-col gap-1.5">
