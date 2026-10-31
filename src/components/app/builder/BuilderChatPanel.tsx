@@ -126,7 +126,7 @@ function MessageBody({ content, stream }: { content: string; stream?: boolean })
 
   const lines = shown.split("\n");
   return (
-    <div className="min-w-0 max-w-full space-y-1 overflow-x-hidden break-words [overflow-wrap:anywhere]">
+    <div className="w-full min-w-0 max-w-full space-y-1 break-words [overflow-wrap:anywhere] [word-break:break-word]">
       {lines.map((line, i) => {
         if (
           line === "Plan" ||
@@ -138,7 +138,7 @@ function MessageBody({ content, stream }: { content: string; stream?: boolean })
           return (
             <div
               key={i}
-              className="pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 first:pt-0"
+              className="max-w-full pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 first:pt-0"
             >
               {line}
             </div>
@@ -148,7 +148,7 @@ function MessageBody({ content, stream }: { content: string; stream?: boolean })
           return (
             <div
               key={i}
-              className="min-w-0 break-words pl-0.5 font-mono text-[12px] text-white/60 [overflow-wrap:anywhere]"
+              className="max-w-full min-w-0 break-words pl-0.5 font-mono text-[12px] text-white/60 [overflow-wrap:anywhere] [word-break:break-word]"
             >
               {line}
             </div>
@@ -158,7 +158,7 @@ function MessageBody({ content, stream }: { content: string; stream?: boolean })
         return (
           <p
             key={i}
-            className="min-w-0 break-words text-[12.5px] leading-relaxed text-inherit [overflow-wrap:anywhere]"
+            className="max-w-full min-w-0 break-words text-[12.5px] leading-relaxed text-inherit [overflow-wrap:anywhere] [word-break:break-word]"
           >
             {line}
             {!done && i === lines.length - 1 && (
@@ -643,14 +643,14 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
   };
 
   return (
-    <aside className="relative flex h-full min-w-0 max-w-full flex-col overflow-x-hidden overflow-hidden border-l border-white/[0.06] bg-[#09090b]">
-      <div className="h-10 border-b border-white/[0.06] bg-[#0a0a0b] px-3 flex items-center justify-between shrink-0 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+    <aside className="relative flex h-full w-full min-w-0 max-w-full flex-col overflow-hidden border-l border-white/[0.06] bg-[#09090b]">
+      <div className="flex h-10 min-w-0 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-white/[0.06] bg-[#0a0a0b] px-3">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
             Agent
           </span>
           {onAgentModeChange && (
-            <div className="flex rounded-md border border-white/[0.08] p-0.5">
+            <div className="flex min-w-0 shrink rounded-md border border-white/[0.08] p-0.5">
               <button
                 type="button"
                 onClick={() => onAgentModeChange("talk")}
@@ -696,9 +696,11 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 shrink items-center gap-2 overflow-hidden">
           {creditsLabel && (
-            <span className="text-[9px] font-mono text-white/35 tabular-nums">{creditsLabel}</span>
+            <span className="hidden max-w-[4.5rem] truncate text-[9px] font-mono tabular-nums text-white/35 sm:inline">
+              {creditsLabel}
+            </span>
           )}
           {onToggleAutoFix && (
             <button
@@ -706,39 +708,40 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
               onClick={onToggleAutoFix}
               title="Auto-fix preview/terminal errors"
               className={cn(
-                "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider border transition-colors",
+                "flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
                 autoFixEnabled
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300/90"
                   : "border-white/10 text-white/30 hover:text-white/50"
               )}
             >
               <Zap className="w-2.5 h-2.5" />
-              Auto-fix {autoFixEnabled ? "on" : "off"}
+              <span className="hidden sm:inline">Auto-fix </span>
+              {autoFixEnabled ? "on" : "off"}
             </button>
           )}
           {isGenerating ? (
-            <span className="text-[10px] text-primary/90 flex items-center gap-1.5">
+            <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-primary/90">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-40" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
               Running
             </span>
           ) : (
-            <span className="text-[10px] text-white/25">Ready</span>
+            <span className="shrink-0 text-[10px] text-white/25">Ready</span>
           )}
         </div>
       </div>
 
-      <div className="custom-scrollbar min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3">
-        <div className="min-w-0 space-y-3">
+      <div className="custom-scrollbar min-h-0 min-w-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3 [scrollbar-gutter:stable]">
+        <div className="w-full min-w-0 max-w-full space-y-3">
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`flex min-w-0 flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
+              className={`flex w-full min-w-0 max-w-full flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
             >
               {m.role === "assistant" && (
-                <span className="text-[9px] uppercase tracking-wider text-white/25 mb-1 px-0.5">
+                <span className="mb-1 max-w-full truncate px-0.5 text-[9px] uppercase tracking-wider text-white/25">
                   {m.meta?.autoFix
                     ? "Auto-fix"
                     : m.meta?.kind === "plan"
@@ -749,7 +752,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 </span>
               )}
               <div
-                className={`max-w-[94%] min-w-0 rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed break-words [overflow-wrap:anywhere] overflow-hidden ${
+                className={`box-border w-fit max-w-full min-w-0 rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] ${
                   m.role === "user"
                     ? "bg-white text-black rounded-br-md"
                     : m.content.startsWith("Error:") || m.content.startsWith("I hit an error")
@@ -758,7 +761,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 }`}
               >
                 {m.attachments && m.attachments.length > 0 && (
-                  <div className="flex flex-col gap-1.5 mb-2 w-full">
+                  <div className="mb-2 flex w-full min-w-0 max-w-full flex-col gap-1.5">
                     {m.attachments.map((a) =>
                       a.kind === "image" && a.dataUrl ? (
                         <img
@@ -772,10 +775,10 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                       ) : (
                         <span
                           key={a.id}
-                          className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-black/10 w-fit"
+                          className="inline-flex max-w-full items-center gap-1 truncate rounded-md bg-black/10 px-2 py-1 text-[10px]"
                         >
-                          <FileText className="w-3 h-3" />
-                          {a.name}
+                          <FileText className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{a.name}</span>
                         </span>
                       )
                     )}
@@ -784,7 +787,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
                 {m.role === "assistant" ? (
                   <MessageBody content={m.content} stream={Boolean(m.meta?.stream)} />
                 ) : m.content.trim() ? (
-                  <div className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                  <div className="max-w-full min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
                     {m.content}
                   </div>
                 ) : null}
@@ -830,7 +833,7 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
 
       <div
         className={cn(
-          "p-2.5 border-t border-white/[0.06] bg-[#080808] shrink-0 transition-colors",
+          "min-w-0 max-w-full shrink-0 overflow-x-hidden border-t border-white/[0.06] bg-[#080808] p-2.5 transition-colors",
           dragOver && "bg-primary/5 border-primary/30"
         )}
         onDragOver={(e) => {

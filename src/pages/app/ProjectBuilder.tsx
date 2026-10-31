@@ -2753,8 +2753,8 @@ const ProjectBuilder = () => {
 
       <div className="flex-1 relative z-10 flex overflow-hidden min-h-0">
         {isMobile ? (
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex border-b border-white/[0.06]">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="flex shrink-0 border-b border-white/[0.06]">
               <button
                 className={`flex-1 py-2 text-[10px] font-semibold uppercase tracking-wider ${
                   activeMobileTab === "editor" ? "text-primary" : "text-white/30"
@@ -2772,7 +2772,9 @@ const ProjectBuilder = () => {
                 Agent
               </button>
             </div>
-            {activeMobileTab === "editor" ? previewPanel : chatPanel}
+            <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+              {activeMobileTab === "editor" ? previewPanel : chatPanel}
+            </div>
           </div>
         ) : (
           <PanelGroup direction="horizontal" autoSaveId="asooju-builder-layout">
@@ -2829,7 +2831,7 @@ const ProjectBuilder = () => {
                   maxSize={40}
                   collapsible
                   onCollapse={() => setRightPanelOpen(false)}
-                  className="min-w-0"
+                  className="min-w-0 overflow-hidden"
                 >
                   {chatPanel}
                 </Panel>
