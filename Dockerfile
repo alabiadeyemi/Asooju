@@ -29,7 +29,7 @@ ENV NODE_ENV=production \
     PORT=3000
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm install tsx@4.19.3 --omit=dev --no-save
+RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/api ./api
@@ -39,5 +39,5 @@ COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/tsconfig.app.json ./tsconfig.app.json
 
 EXPOSE 3000
-# Coolify may set PORT=80; listen uses process.env.PORT. Do not use `npx tsx` (may ignore local install).
-CMD ["./node_modules/.bin/tsx", "scripts/api-server.ts", "--static"]
+# Coolify may set PORT=80; listen uses process.env.PORT.
+CMD ["node", "--import", "tsx", "scripts/api-server.ts", "--static"]
