@@ -19,13 +19,8 @@ const navLinks = [
 ];
 
 export const Navbar = () => {
-  const {
-    open: mobileOpen,
-    openDrawer,
-    closeDrawer,
-    overlayInteractive,
-    onOverlayPointerDown,
-  } = useMobileDrawer();
+  const { open: mobileOpen, openDrawer, closeDrawer, onOverlayPointerDown } =
+    useMobileDrawer();
   const location = useLocation();
   const { user, logout } = useAuth();
 
@@ -83,7 +78,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile toggle */}
+          {/* Mobile toggle — open only; close via X / overlay (avoids ghost-toggle races) */}
           <button
             type="button"
             className="md:hidden p-2 text-foreground/80 touch-manipulation"
@@ -96,23 +91,27 @@ export const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile drawer — CSS slide (Framer x + body position:fixed clipped on iOS) */}
-      {mobileOpen && (
-        <>
-          <div
-            onPointerDown={onOverlayPointerDown}
-            onClick={onOverlayPointerDown}
-            aria-hidden
-            className={cn(
-              "fixed inset-0 z-[60] bg-black/60",
-              !overlayInteractive && "pointer-events-none"
-            )}
-          />
+      {/* Always mounted: CSS slide — remounting on iOS Chrome felt like a slow "load". */}
+      <div
+        onPointerDown={onOverlayPointerDown}
+        onClick={onOverlayPointerDown}
+        aria-hidden={!mobileOpen}
+        className={cn(
+          "fixed inset-0 z-[60] bg-black/60 transition-opacity duration-150 md:hidden",
+          mobileOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        )}
+      />
 
-          <div
-            className="fixed inset-y-0 right-0 z-[70] flex w-[min(100vw-2.5rem,24rem)] max-w-full flex-col overflow-x-hidden border-l border-white/10 bg-[#060606] shadow-2xl"
-            style={{ transform: "translate3d(0,0,0)" }}
-          >
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 z-[70] flex w-[min(100vw-2.5rem,24rem)] max-w-full flex-col overflow-x-hidden border-l border-white/10 bg-[#060606] shadow-2xl md:hidden",
+          "transition-transform duration-150 ease-out will-change-transform",
+          mobileOpen ? "translate-x-0" : "translate-x-full"
+        )}
+        aria-hidden={!mobileOpen}
+      >
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 p-6 min-w-0">
                 <div className="min-w-0 truncate">
                   <Logo size="sm" showText />
@@ -231,9 +230,7 @@ export const Navbar = () => {
                   </div>
                 </div>
               </div>
-          </div>
-        </>
-      )}
+      </div>
     </>
   );
 };

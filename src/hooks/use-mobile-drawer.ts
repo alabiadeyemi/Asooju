@@ -6,100 +6,66 @@ import {
   type SyntheticEvent,
 } from "react";
 
-/** iOS WebKit synthesizes click after touchend; ignore closes during that window. */
-const CLOSE_GUARD_MS = 450;
-
 /**
- * Mobile drawer open state with iOS ghost-click protection.
- * Newly mounted overlays must not receive the opening tap's synthetic click.
+ * Mobile drawer state.
+ *
+ * Keep open/close explicit — never block an intentional close.
+ * Only the backdrop ignores the ghost click that iOS fires after the
+ * opening tap (so the drawer does not instantly dismiss itself).
  */
 export function useMobileDrawer() {
   const [open, setOpen] = useState(false);
-  const [overlayInteractive, setOverlayInteractive] = useState(false);
-  const openedAtRef = useRef(0);
+  const ignoreOverlayUntilRef = useRef(0);
 
   const openDrawer = useCallback(() => {
-    openedAtRef.current = Date.now();
-    setOverlayInteractive(false);
+    // Ignore overlay taps briefly; hamburger/X close always works.
+    ignoreOverlayUntilRef.current = Date.now() + 350;
     setOpen(true);
   }, []);
 
   const closeDrawer = useCallback(() => {
     setOpen(false);
-    setOverlayInteractive(false);
   }, []);
 
-  const toggleDrawer = useCallback(() => {
-    setOpen((wasOpen) => {
-      if (wasOpen) {
-        // Ghost click often retargets the hamburger (z above overlay) and would
-        // immediately toggle closed — ignore closes inside the guard window.
-        if (Date.now() - openedAtRef.current < CLOSE_GUARD_MS) {
-          return true;
-        }
-        setOverlayInteractive(false);
-        return false;
-      }
-      openedAtRef.current = Date.now();
-      setOverlayInteractive(false);
-      return true;
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!open) {
-      setOverlayInteractive(false);
-      return;
-    }
-    const id = window.setTimeout(() => setOverlayInteractive(true), CLOSE_GUARD_MS);
-    return () => window.clearTimeout(id);
-  }, [open]);
-
-  // Lock scroll without body position:fixed — that offsets fixed drawers on iOS
-  // ("almost open" / clipped right edge).
   useEffect(() => {
     if (!open) return;
 
     const html = document.documentElement;
     const body = document.body;
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: body.style.overflow,
-      bodyTouch: body.style.touchAction,
-      overscroll: body.style.overscrollBehavior,
-    };
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
 
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
-    body.style.touchAction = "none";
-    body.style.overscrollBehavior = "none";
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
 
     return () => {
-      html.style.overflow = prev.htmlOverflow;
-      body.style.overflow = prev.bodyOverflow;
-      body.style.touchAction = prev.bodyTouch;
-      body.style.overscrollBehavior = prev.overscroll;
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      window.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
   const onOverlayPointerDown = useCallback(
     (event: SyntheticEvent) => {
-      if (!overlayInteractive) {
+      if (Date.now() < ignoreOverlayUntilRef.current) {
         event.preventDefault();
         event.stopPropagation();
         return;
       }
       closeDrawer();
     },
-    [overlayInteractive, closeDrawer]
+    [closeDrawer]
   );
 
   return {
     open,
     openDrawer,
     closeDrawer,
-    toggleDrawer,
-    overlayInteractive,
     onOverlayPointerDown,
   };
 }

@@ -157,7 +157,6 @@ const ProjectBuilder = () => {
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [filesPanelOpen, setFilesPanelOpen] = useState(false);
-  const [mobileExplorerOpen, setMobileExplorerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"code" | "preview">("preview");
   const [activeMobileTab, setActiveMobileTab] = useState<"editor" | "chat">("editor");
@@ -2737,8 +2736,6 @@ const ProjectBuilder = () => {
         projectName={projectName}
         projectId={projectId || ""}
         isMobile={isMobile}
-        mobileExplorerOpen={mobileExplorerOpen}
-        setMobileExplorerOpen={setMobileExplorerOpen}
         handleSave={handleSave}
         handleShare={handleShare}
         handleSettings={() => setSettingsOpen(true)}

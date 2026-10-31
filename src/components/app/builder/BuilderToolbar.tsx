@@ -1,7 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Menu,
   Save,
   Share2,
   Settings,
@@ -18,8 +17,6 @@ interface BuilderToolbarProps {
   projectName: string;
   projectId: string;
   isMobile: boolean;
-  mobileExplorerOpen: boolean;
-  setMobileExplorerOpen: (open: boolean) => void;
   handleSave: () => void;
   handleShare: () => void;
   handleSettings: () => void;
@@ -37,8 +34,6 @@ export const BuilderToolbar: React.FC<BuilderToolbarProps> = ({
   projectName,
   projectId,
   isMobile,
-  mobileExplorerOpen,
-  setMobileExplorerOpen,
   handleSave,
   handleShare,
   handleSettings,
@@ -54,16 +49,8 @@ export const BuilderToolbar: React.FC<BuilderToolbarProps> = ({
   return (
     <header className="relative z-40 flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#0a0a0b] px-3 max-lg:pl-14">
       <div className="flex min-w-0 items-center gap-2.5">
-        {isMobile && (
-          <button
-            type="button"
-            onClick={() => setMobileExplorerOpen(!mobileExplorerOpen)}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-white/5 hover:text-white"
-            aria-label={mobileExplorerOpen ? "Close files" : "Open files"}
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-        )}
+        {/* Nav hamburger lives in AppLayout (portaled). No second Menu here —
+            it stole taps and toggled a dead mobileExplorerOpen flag. */}
         <Logo size="sm" />
         <div className="flex flex-col text-left min-w-0">
           <span className="text-[12px] font-semibold text-white leading-none truncate">
