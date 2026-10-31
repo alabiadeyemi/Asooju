@@ -22,7 +22,6 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { loadEnv } from "vite";
 
 const PORT = Number(process.env.API_PORT || process.env.PORT || 8787);
 // 0.0.0.0 required for Coolify/Docker reverse proxy; override with API_HOST=127.0.0.1 for local-only
@@ -33,6 +32,41 @@ const SERVE_STATIC =
   process.env.SERVE_STATIC === "1" ||
   process.env.SERVE_STATIC === "true" ||
   process.argv.includes("--static");
+
+/** Minimal .env loader — avoid importing vite (devDependency) in the prod image. */
+function loadEnvFile(filePath: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!fs.existsSync(filePath)) return out;
+  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let val = trimmed.slice(eq + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    out[key] = val;
+  }
+  return out;
+}
+
+for (const name of [
+  ".env",
+  ".env.local",
+  ".env.production",
+  ".env.production.local",
+  ".env.development",
+  ".env.development.local",
+]) {
+  for (const [k, v] of Object.entries(loadEnvFile(path.join(ROOT, name)))) {
+    if (process.env[k] === undefined) process.env[k] = v;
+  }
+}
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -70,13 +104,6 @@ const ROUTES: Record<string, string> = {
   "/api/admin/login": "api/admin/login.ts",
   "/api/claude": "api/claude.ts",
 };
-
-for (const [k, v] of Object.entries(loadEnv("production", ROOT, ""))) {
-  if (process.env[k] === undefined) process.env[k] = v;
-}
-for (const [k, v] of Object.entries(loadEnv("development", ROOT, ""))) {
-  if (process.env[k] === undefined) process.env[k] = v;
-}
 
 const handlerCache = new Map<
   string,

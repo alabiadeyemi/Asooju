@@ -39,4 +39,5 @@ COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/tsconfig.app.json ./tsconfig.app.json
 
 EXPOSE 3000
-CMD ["npx", "tsx", "scripts/api-server.ts", "--static"]
+# Coolify may set PORT=80; listen uses process.env.PORT. Do not use `npx tsx` (may ignore local install).
+CMD ["./node_modules/.bin/tsx", "scripts/api-server.ts", "--static"]
