@@ -552,6 +552,38 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [chatInput]);
 
+  // Mobile keyboards (esp. iOS/Chrome) zoom inputs <16px and leave the page
+  // horizontally panned after dismiss — reset viewport scroll on vv changes/blur.
+  useEffect(() => {
+    if (!isMobile) return;
+    const vv = window.visualViewport;
+    const resetX = () => {
+      if (window.scrollX || document.documentElement.scrollLeft || document.body.scrollLeft) {
+        window.scrollTo({ left: 0, top: window.scrollY });
+      }
+      document.documentElement.scrollLeft = 0;
+      document.body.scrollLeft = 0;
+    };
+    const sync = () => {
+      if (vv) {
+        document.documentElement.style.setProperty("--vv-offset-top", `${vv.offsetTop}px`);
+        document.documentElement.style.setProperty("--vv-height", `${vv.height}px`);
+      }
+      resetX();
+    };
+    sync();
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      window.removeEventListener("orientationchange", sync);
+      document.documentElement.style.removeProperty("--vv-offset-top");
+      document.documentElement.style.removeProperty("--vv-height");
+    };
+  }, [isMobile]);
+
   useEffect(() => {
     localStorage.setItem("asooju_chat_suggestions", suggestionsOn ? "1" : "0");
   }, [suggestionsOn]);
@@ -964,13 +996,27 @@ export const BuilderChatPanel: React.FC<BuilderChatPanelProps> = ({
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onPaste={handleComposerPaste}
+            onFocus={() => {
+              // Keep composer in view when the soft keyboard opens.
+              window.setTimeout(() => {
+                textareaRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+              }, 50);
+            }}
+            onBlur={() => {
+              // After keyboard closes, kill leftover horizontal pan from iOS zoom.
+              window.setTimeout(() => {
+                window.scrollTo({ left: 0, top: window.scrollY });
+                document.documentElement.scrollLeft = 0;
+                document.body.scrollLeft = 0;
+              }, 50);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 send();
               }
             }}
-            className="w-full bg-transparent border-none resize-none px-2.5 pt-2 pb-1.5 text-[13px] text-white/90 placeholder:text-white/28 outline-none min-h-[40px] max-h-[160px] leading-relaxed"
+            className="w-full resize-none border-none bg-transparent px-2.5 pb-1.5 pt-2 text-base leading-relaxed text-white/90 outline-none placeholder:text-white/28 min-h-[40px] max-h-[160px] md:text-[13px]"
           />
           <div className="flex items-center justify-between px-1 pt-0.5 pb-0.5">
             <div className="flex items-center gap-0.5">
